@@ -71,10 +71,19 @@ class SpaceBoundaries:
     def show(self, sbrel):
 #        (face, name) = self.loadsb(sbrel)
 #        Part.show(face, name) # Insert as <Part::PartFeature> into active Document
+        def name(e):
+            if e.Name:
+                return e.Name
+            else:
+                return str(e.id())
         space = sbrel.RelatingSpace
         boundary_elem = sbrel.RelatedBuildingElement
         surface = sbrel.ConnectionGeometry.SurfaceOnRelatingElement
-        name = 'Raum' + space.Name + '_zu_' + boundary_elem.Name + '_' + str(sbrel.id())
+        if boundary_elem:
+            name = 'Raum' + name(space) + '_zu_' + name(boundary_elem) + '_' + str(sbrel.id())
+        else:
+            name = 'Raum' + name(space) + '_' + str(sbrel.id())
+            print("SpaceBoundary without building element: ", sbrel)
         if sbrel.PhysicalOrVirtualBoundary == 'PHYSICAL':
             green = 0.0
         else:
@@ -86,7 +95,11 @@ class SpaceBoundaries:
         shape.scale(1000.0)
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
         obj = FreeCAD.ActiveDocument.addObject("Part::Feature",name)
-        obj.Shape = shape
+        if len(shape.Faces) == 1:
+            obj.Shape = shape.Faces[0]
+        else:
+            print("SpaceBoundary has not exactly one face: ", sbrel)
+            obj.Shape = shape
         if sbrel.InternalOrExternalBoundary == 'INTERNAL':
             obj.ViewObject.ShapeColor = (1.0, green, 0.0)
         else:
