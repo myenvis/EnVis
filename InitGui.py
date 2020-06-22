@@ -1,11 +1,11 @@
 # main workbench class
 
-class EnPlanWorkbench(Workbench):
+class EnVisWorkbench(Workbench):
 
 
     def __init__(self):
 
-        self.__class__.MenuText = "EnPlan"
+        self.__class__.MenuText = "EnVis"
         self.__class__.ToolTip = "Energy planning workbench"
         self.__class__.Icon = """
 /* XPM */
@@ -42,7 +42,7 @@ static char * IFC_xpm[] = {
 
         import DraftTools
         import Arch
-        import EnPlanCommands
+        import EnVisCommands
         try:
         #    import BimCommands,BimWindows,BimStructure,BimLayers
         #    FreeCADGui.addCommand('BIM_Column',BimStructure.BIM_Column())
@@ -96,7 +96,7 @@ static char * IFC_xpm[] = {
                       "Arch_ToggleIfcBrepFlag",
                       "Arch_ToggleSubs","Arch_Survey","BIM_Diff","BIM_IfcExplorer"]
 
-        self.enplan = ["EnPlan_Import"]
+        self.envis = ["EnVis_Import"]
 
 
         # post-0.18 tools
@@ -167,7 +167,7 @@ static char * IFC_xpm[] = {
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&Modify"),self.modify)
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&Manage"),self.manage)
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&Utils"),self.utils)
-        self.appendMenu("EnPlan", self.enplan)
+        self.appendMenu("EnVis", self.envis)
 
 
         # load Arch & Draft preference pages
@@ -185,7 +185,7 @@ static char * IFC_xpm[] = {
                 FreeCADGui.addPreferencePage(":/ui/preferences-drafttexts.ui","Draft")
                 FreeCADGui.draftToolBar.loadedPreferences = True
 
-        Log ('Loading EnPlan module... done\n')
+        Log ('Loading EnVis module... done\n')
         FreeCADGui.updateLocale()
 
     def Activated(self):
@@ -195,7 +195,7 @@ static char * IFC_xpm[] = {
         if hasattr(FreeCADGui,"Snapper"):
             FreeCADGui.Snapper.show()
 
-        class EnPlanWatcher:
+        class EnVisWatcher:
 
             def __init__(self,cmds,name,invert=False):
 
@@ -210,11 +210,11 @@ static char * IFC_xpm[] = {
                 else:
                     return (FreeCAD.ActiveDocument != None) and (not FreeCADGui.Selection.getSelection())
 
-        FreeCADGui.Control.addTaskWatcher([EnPlanWatcher(self.draftingtools+self.annotationtools,"2D geometry"),
-                                           EnPlanWatcher(self.bimtools,"3D/BIM geometry"),
-                                           EnPlanWatcher(self.modify,"Modify",invert=True)])
+        FreeCADGui.Control.addTaskWatcher([EnVisWatcher(self.draftingtools+self.annotationtools,"2D geometry"),
+                                           EnVisWatcher(self.bimtools,"3D/BIM geometry"),
+                                           EnVisWatcher(self.modify,"Modify",invert=True)])
 
-        Log("EnPlan workbench activated\n")
+        Log("EnVis workbench activated\n")
 
 
     def Deactivated(self):
@@ -226,7 +226,7 @@ static char * IFC_xpm[] = {
 
         FreeCADGui.Control.clearTaskWatcher()
 
-        Log("EnPlan workbench deactivated\n")
+        Log("EnVis workbench deactivated\n")
 
 
     def ContextMenu(self, recipient):
@@ -268,7 +268,7 @@ static char * IFC_xpm[] = {
         return "Gui::PythonWorkbench"
 
 
-FreeCADGui.addWorkbench(EnPlanWorkbench)
+FreeCADGui.addWorkbench(EnVisWorkbench)
 
 
 

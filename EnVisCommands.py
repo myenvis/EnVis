@@ -16,22 +16,22 @@ uselessElements = ["IfcFlowTerminal", "IfcSanitaryTerminal", "IfcFurniture", "If
 class _CommandImport:
     def GetResources(self):
         return { #'Pixmap'  : 'Arch_Add',
-                'MenuText': QtCore.QT_TRANSLATE_NOOP("EnPlan_Import","Import IFC file"),
-                'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnPlan_Import","Import IFC Elements useful for energy calculations")}
+                'MenuText': QtCore.QT_TRANSLATE_NOOP("EnVis_Import","Import IFC file"),
+                'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnVis_Import","Import IFC Elements useful for energy calculations")}
 
     def Activated(self):
         import ifcopenshell,importIFC,SpaceBoundary
         from PySide import QtCore,QtGui
 
         self.filename = None
-        lastfolder = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/EnPlan").GetString("lastImportFolder","")
-        filename = QtGui.QFileDialog.getOpenFileName(None,translate("EnPlan","Select an IFC file"),lastfolder,translate("EnPlan","IFC files (*.ifc)"))
+        lastfolder = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/EnVis").GetString("lastImportFolder","")
+        filename = QtGui.QFileDialog.getOpenFileName(None,translate("EnVis","Select an IFC file"),lastfolder,translate("EnVis","IFC files (*.ifc)"))
         if filename:
             self.filename = filename[0]
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/EnPlan").SetString("lastImportFolder",os.path.dirname(self.filename))
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/EnVis").SetString("lastImportFolder",os.path.dirname(self.filename))
 
         if not os.path.exists(self.filename):
-            FreeCAD.Console.PrintError(translate("EnPlan","File not found")+"\n")
+            FreeCAD.Console.PrintError(translate("EnVis","File not found")+"\n")
             return
 
         ifcfile = ifcopenshell.open(self.filename)
@@ -48,4 +48,4 @@ class _CommandImport:
 
 
 if FreeCAD.GuiUp:
-    FreeCADGui.addCommand('EnPlan_Import',_CommandImport())
+    FreeCADGui.addCommand('EnVis_Import',_CommandImport())
