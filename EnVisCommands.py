@@ -1,4 +1,4 @@
-import FreeCAD,os
+import FreeCAD,os,EnVisProject
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -42,7 +42,13 @@ class _CommandImport:
         try:
             importIFC.insert(ifcfile, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
         except TypeError:
-            importIFC.insert(self.filename, docname, skip=uselessElements)
+            importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
+
+        p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
+        EnVisProject.EnVisProject(p)
+        p.IFCFile = self.filename
+#        p.Proxy.ifc = ifcfile
+
         sb = SpaceBoundary.SpaceBoundaries(self.filename)
         sb.show_all()
 
