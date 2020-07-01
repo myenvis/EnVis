@@ -42,7 +42,7 @@ static char * IFC_xpm[] = {
 
         import DraftTools
         import Arch
-        import EnVisCommands
+        import EnVisCommands,EnVisBruttoFaces
         try:
         #    import BimCommands,BimWindows,BimStructure,BimLayers
         #    FreeCADGui.addCommand('BIM_Column',BimStructure.BIM_Column())
@@ -96,7 +96,7 @@ static char * IFC_xpm[] = {
                       "Arch_ToggleIfcBrepFlag",
                       "Arch_ToggleSubs","Arch_Survey","BIM_Diff","BIM_IfcExplorer"]
 
-        self.envis = ["EnVis_Import"]
+        self.envis = ["EnVis_Import","EnVis_BruttoFl"]
 
 
         # post-0.18 tools

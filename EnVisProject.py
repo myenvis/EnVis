@@ -3,6 +3,8 @@ import FreeCAD,ifcopenshell
 class EnVisProject:
     def __init__(self, obj):
         obj.addProperty("App::PropertyPath", "IFCFile", "EnVis", "Die IFC-Datei aus der das Modell stammt")
+        obj.addProperty("App::PropertyBool", "moveOuterSB", "Bruttoflächen", "Verschiebe äußere SpaceBoundaries auf die andere Seite des Bauteils")
+        obj.moveOuterSB = True
         obj.Proxy = self
 
     def execute(self, obj):
