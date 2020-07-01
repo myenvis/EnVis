@@ -24,11 +24,20 @@ class EnVisIfcSB:
         obj.addProperty('App::PropertyLink', 'Space', 'IfcData', 'Zugehörges Raumobjekt')
         obj.addProperty('App::PropertyLink', 'BuildingElement', 'IfcData', 'Zugehörger Bauteil')
         obj.addProperty('App::PropertyBool', 'Internal', 'IfcData', 'Ein anderer Raum liegt gegenüber')
+        obj.addProperty('App::PropertyLinkSub', 'BaseFace', 'DerivedData', 'Die begrenzende Fläche des Bauteils')
         obj.Proxy = self
         obj.ViewObject.Proxy = 0
 
     def execute(self, obj):
-        pass
+        if obj.BuildingElement:
+            faces = obj.BuildingElement.Shape.Faces
+            i = 1
+            while faces:
+                f = faces.pop(0)
+                if obj.Shape.isCoplanar(f):
+                    obj.BaseFace = [obj.BuildingElement, "Face"+str(i)]
+                    break
+                i += 1
 
 
 class SpaceBoundaries:
