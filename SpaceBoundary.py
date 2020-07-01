@@ -11,6 +11,26 @@ import SpaceBoundary
 sb = SpaceBoundary.SpaceBoundaries('/home/harald/architecture/manual.ifc')
 """
 
+def getObject(doc, ent):
+    objs = doc.Objects
+    for o in objs:
+        if hasattr(o, "GlobalId") and o.GlobalId == ent.GlobalId:
+            return o
+
+    return None
+
+class EnVisIfcSB:
+    def __init__(self, obj):
+        obj.addProperty('App::PropertyLink', 'Space', 'IfcData', 'Zugehörges Raumobjekt')
+        obj.addProperty('App::PropertyLink', 'BuildingElement', 'IfcData', 'Zugehörger Bauteil')
+        obj.addProperty('App::PropertyBool', 'Internal', 'IfcData', 'Ein anderer Raum liegt gegenüber')
+        obj.Proxy = self
+        obj.ViewObject.Proxy = 0
+
+    def execute(self, obj):
+        pass
+
+
 class SpaceBoundaries:
     def __init__(self, filename):
     
@@ -94,13 +114,18 @@ class SpaceBoundaries:
         shape.importBrepFromString(cr.brep_data)
         shape.scale(1000.0)
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
-        obj = FreeCAD.ActiveDocument.addObject("Part::Feature",name)
+        obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
+        EnVisIfcSB(obj)
+        obj.Space = FreeCAD.ActiveDocument.getObjectsByLabel(space.Name)[0]
+        obj.BuildingElement = getObject(FreeCAD.ActiveDocument, boundary_elem)
+
         if len(shape.Faces) == 1:
             obj.Shape = shape.Faces[0]
         else:
             print("SpaceBoundary has not exactly one face: ", sbrel)
             obj.Shape = shape
-        if sbrel.InternalOrExternalBoundary == 'INTERNAL':
+        obj.Internal = sbrel.InternalOrExternalBoundary == 'INTERNAL'
+        if obj.Internal:
             obj.ViewObject.ShapeColor = (1.0, green, 0.0)
         else:
             obj.ViewObject.ShapeColor = (0.0, green, 1.0)
