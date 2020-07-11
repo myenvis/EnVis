@@ -63,43 +63,7 @@ class SpaceBoundaries:
 
         self.sbrels = self.ifcfile.by_type('IfcRelSpaceBoundary')
 
-    def loadsb(self, sbrel):
-        # Relevant members of sbrel:
-        sbrel.GlobalId
-        if sbrel.Name != '2ndLevel':
-            print("Not a 2ndLevel Boundary: ", sbrel)
-        if sbrel.Description != '2a':
-            print("Boundary nof of type 2a: ", sbrel);
-        space = sbrel.RelatingSpace
-        boundary_elem = sbrel.RelatedBuildingElement
-        surface = sbrel.ConnectionGeometry.SurfaceOnRelatingElement
-        p = importIFCHelper.getPlacement(surface.BasisSurface.Position,self.ifcscale)
-        if surface.InnerBoundaries:
-            print("Boundary between ", space.Name, " and ", boundary_elem.Name, " has holes!")
-        #boundary_segments = surface.OuterBoundary.Segments
-        if sbrel.ConnectionGeometry.SurfaceOnRelatedElement:
-            print("Boundary has Surface on non-space element: ", sbrel)
-        isreal = sbrel.PhysicalOrVirtualBoundary == 'PHYSICAL'
-        isinternal = sbrel.InternalOrExternalBoundary == 'INTERNAL'
-
-        outer_boundary = importIFCHelper.get2DShape(surface)
-        if not outer_boundary:
-            print("zweite methode")
-            outer_boundary = importIFCHelper.get2DShape(surface.OuterBoundary.Segments[0].ParentCurve)
-        if not outer_boundary:
-            print("returning entity")
-            return surface
-        
-        f = Part.makeFilledFace(outer_boundary[0].SubShapes)
-#        p.multiply(importIFCHelper.getPlacement(space.ObjectPlacement))
-        f.Placement = p
-        # f.Placement.move()
-
-        return (f, 'Raum' + space.Name + '_zu_' + boundary_elem.Name + '_' + str(sbrel.id()))
-
     def show(self, sbrel):
-#        (face, name) = self.loadsb(sbrel)
-#        Part.show(face, name) # Insert as <Part::PartFeature> into active Document
         def name(e):
             if e.Name:
                 return e.Name
