@@ -44,10 +44,6 @@ static char * IFC_xpm[] = {
         import Arch
         import EnVisCommands,EnVisBruttoFaces
         try:
-        #    import BimCommands,BimWindows,BimStructure,BimLayers
-        #    FreeCADGui.addCommand('BIM_Column',BimStructure.BIM_Column())
-        #    FreeCADGui.addCommand('BIM_Beam',BimStructure.BIM_Beam())
-        #    FreeCADGui.addCommand('BIM_Slab',BimStructure.BIM_Slab())
             Gui.activateWorkbench("BIMWorkbench")
         except KeyError:
             print("BIM Workbench not available. Some commands will be missing.")
@@ -155,7 +151,7 @@ static char * IFC_xpm[] = {
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","3D/BIM tools"),self.bimtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Annotation tools"),self.annotationtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Modification tools"),self.modify)
-        self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Manage tools"),self.manage)
+        #self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Manage tools"),self.manage)
 
         # create menus
 
