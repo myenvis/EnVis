@@ -1,3 +1,5 @@
+# TODO: rename file to EnVisIFCSpaceBoundaries
+
 import FreeCAD
 import Arch
 import ArchIFC
@@ -6,12 +8,9 @@ import Draft
 import importIFCHelper
 import ifcopenshell
 
-"""
-import SpaceBoundary
-sb = SpaceBoundary.SpaceBoundaries('/home/harald/architecture/manual.ifc')
-"""
 
 def getObject(doc, ent):
+    """ get object by IFC global ID """
     objs = doc.Objects
     for o in objs:
         if hasattr(o, "GlobalId") and o.GlobalId == ent.GlobalId:
@@ -19,7 +18,7 @@ def getObject(doc, ent):
 
     return None
 
-class EnVisIfcSB:
+class EnVisIfcSB: # TODO: rename to EnVisIFCSpaceBoundary
     def __init__(self, obj):
         obj.addProperty('App::PropertyLink', 'Space', 'IfcData', 'Zugehörges Raumobjekt')
         obj.addProperty('App::PropertyLink', 'BuildingElement', 'IfcData', 'Zugehörger Bauteil')
@@ -64,6 +63,7 @@ class SpaceBoundaries:
         self.sbrels = self.ifcfile.by_type('IfcRelSpaceBoundary')
 
     def show(self, sbrel):
+        """ erzeugt FreeCAD Objekt von ifcopenshell object sbrel """
         def name(e):
             if e.Name:
                 return e.Name
@@ -85,7 +85,7 @@ class SpaceBoundaries:
         cr = ifcopenshell.geom.create_shape(self.settings,surface)
         shape = Part.Shape()
         shape.importBrepFromString(cr.brep_data)
-        shape.scale(1000.0)
+        shape.scale(1000.0) # m <-> mm
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
         obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
         EnVisIfcSB(obj)
@@ -111,7 +111,7 @@ class SpaceBoundaries:
 
         FreeCAD.ActiveDocument.recompute()
 
-    def writeareas(self, filename):
+    def write_areas(self, filename):
         f = open(filename, 'a')
         for sbrel in self.sbrels:
             (face, name) = self.loadsb(sbrel)

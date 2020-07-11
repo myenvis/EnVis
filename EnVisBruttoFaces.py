@@ -62,19 +62,21 @@ def get_opposite(shape, faceidx):
     return i
 
 def faceFromLinkSub(prop):
-    return prop[0], int(prop[1][0][4:])-1
+    """returns tuple id, faceidx"""
+    return prop[0], int(prop[1][0][4:])-1 # string "faceX"
 
 def linkSubFromFace(obj, faceind):
     return (obj, ["Face" + str(faceind + 1)])
 
 def createModel(layer):
-    """build a brutto faces model from a layer or set containing space boundaries"""
+    """build a brutto faces model from a layer or a set containing space boundaries"""
     if hasattr(layer, "Group"):
         boundaries = layer.Group
     else: 
         boundaries = layer
 
-    byBE = {}
+    byBE = {} # map: name -> list<space boundaries>
+    # TODO: which name is this?
     for sb in boundaries:
         try:
             byBE[sb.BuildingElement.Name].append(sb)
@@ -87,7 +89,7 @@ def createModel(layer):
     brutto_faces = []
     extra = []
     windows = []
-    doors = []
+    doors = [] # TODO: not yet used
 
     def handle_external_case(sb):
         obj, faceind = faceFromLinkSub(sb.BaseFace)

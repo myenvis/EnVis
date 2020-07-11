@@ -1,3 +1,6 @@
+# TODO: rename to Import
+# TODO: move to module "commands"
+
 import FreeCAD,os,EnVisProject
 
 if FreeCAD.GuiUp:
@@ -15,11 +18,13 @@ uselessElements = ["IfcFlowTerminal", "IfcSanitaryTerminal", "IfcFurniture", "If
 
 class _CommandImport:
     def GetResources(self):
+        """ Defines Menu as GUI element """
         return { #'Pixmap'  : 'Arch_Add',
                 'MenuText': QtCore.QT_TRANSLATE_NOOP("EnVis_Import","Import IFC file"),
                 'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnVis_Import","Import IFC Elements useful for energy calculations")}
 
     def Activated(self):
+        # TODO: separate import function
         import ifcopenshell,importIFC,SpaceBoundary
         from PySide import QtCore,QtGui
 
@@ -55,3 +60,5 @@ class _CommandImport:
 
 if FreeCAD.GuiUp:
     FreeCADGui.addCommand('EnVis_Import',_CommandImport())
+
+# TODO: Unit Test with trivial import
