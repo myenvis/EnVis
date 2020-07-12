@@ -152,12 +152,24 @@ def createModel(layer):
             high = shape.BoundBox.ZMax
             low = shape.BoundBox.ZMin
             (z_high, slab) = find_closest(slabs, high)
-            (z_low, slab) = find_closest(slabs, low)
-            vh = filter(lambda v: EnVisHelper.isClose(v.Z, high), shape.Vertexes)
-            vl = filter(lambda v: EnVisHelper.isClose(v.Z, low), shape.Vertexes)
+            (z_low, floor) = find_closest(slabs, low)
+            orig_vertices = shape.OuterWire.Vertexes
+            vh = filter(lambda v: EnVisHelper.isClose(v.Z, high), orig_vertices)
+            vl = filter(lambda v: EnVisHelper.isClose(v.Z, low), orig_vertices)
             replacements = [(v, v.translated((0, 0, z_high - high))) for v in vh]
             replacements.extend([(v, v.translated((0, 0, z_low - low))) for v in vl])
             obj.Shape = shape.replaceShape(replacements)
+            if project.followSlabs:
+                shape = obj.Shape
+                replacements = []
+                candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
+                for e in candidates:
+                    d = EnVisHelper.get_distance_vector(e, floor.Shape.OuterWire)
+                    if d.Length > 500: # TODO: Maybe add configuration setting "maximum snapping distance"
+                        continue
+                    replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
+                if replacements:
+                    obj.Shape = shape.replaceShape(replacements)
 
             brutto_faces.append(obj)
 
