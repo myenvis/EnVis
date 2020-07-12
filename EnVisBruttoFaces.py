@@ -90,6 +90,8 @@ def createModel(layer):
     extra = []
     windows = []
     doors = [] # TODO: not yet used
+    walls = []
+    slabs = [] # Tuples (ZMax, obj)
 
     def handle_external_case(sb):
         obj, faceind = faceFromLinkSub(sb.BaseFace)
@@ -101,21 +103,11 @@ def createModel(layer):
     for sbs in byBE.values():
         beObj = sbs[0].BuildingElement
         if beObj.IfcType == "Wall":
-            internal,external = innerOuter(sbs)
-            while internal:
-                a,b = pop_pair(internal)
-                # TODO Ev Orientierung der Wand beachten
-                d = b.Shape.CenterOfMass - a.Shape.CenterOfMass
-                d.multiply(0.5)
-                obj = makeBruttoFace(a, b.Space)
-                obj.Placement.move(d)
-                brutto_faces.append(obj)
-            for sb in external:
-                brutto_faces.append(handle_external_case(sb))
-
+            walls.append(sbs)
         elif beObj.IfcType == "Window":
             windows.append(sbs)
         elif beObj.IfcType == "Slab":
+            slabs.append((beObj.Shape.BoundBox.ZMax, beObj))
             internal,external = innerOuter(sbs)
             while internal:
                 a,b = pop_pair(internal)
@@ -127,9 +119,22 @@ def createModel(layer):
             for sb in external:
                 # TODO Detect faces to drop
                 brutto_faces.append(handle_external_case(sb))
-
         else:
             extra.append(sbs)
+
+    slabs.sort()
+    for sbs in walls:
+        internal,external = innerOuter(sbs)
+        while internal:
+            a,b = pop_pair(internal)
+            # TODO Ev Orientierung der Wand beachten
+            d = b.Shape.CenterOfMass - a.Shape.CenterOfMass
+            d.multiply(0.5)
+            obj = makeBruttoFace(a, b.Space)
+            obj.Placement.move(d)
+            brutto_faces.append(obj)
+        for sb in external:
+            brutto_faces.append(handle_external_case(sb))
 
     lay = Draft.makeLayer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
