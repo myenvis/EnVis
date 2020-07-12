@@ -16,3 +16,6 @@ def get_distance_vector(base_shape, target_shape):
         if (t - b - d).Length > 0.1:
             raise RuntimeError("Solutions don't match")
     return d
+
+def isClose(x, y):
+    return abs(x - y) < 0.1

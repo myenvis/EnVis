@@ -117,12 +117,12 @@ def createModel(layer):
                 else:
                     obj = makeBruttoFace(b, a.Space)
                 brutto_faces.append(obj)
-                slabs.append((beObj.Shape.BoundBox.ZMax, obj))
+                slabs.append((obj.Shape.BoundBox.ZMax, obj))
             for sb in external:
                 # TODO Detect faces to drop
                 obj = handle_external_case(sb)
                 brutto_faces.append(obj)
-                slabs.append((beObj.Shape.BoundBox.ZMax, obj))
+                slabs.append((obj.Shape.BoundBox.ZMax, obj))
         else:
             extra.append(sbs)
 
@@ -130,11 +130,12 @@ def createModel(layer):
     def find_closest(elements, target):
         # TODO: Implement something faster
         diff = abs(elements[0][0] - target) + 1
-        for (value, obj) in elements:
+        for e in elements:
+            (value, obj) = e
             d = abs(value - target)
             if d < diff:
-                d = diff
-                result = obj
+                diff = d
+                result = e
         return result
 
     for sbs in walls:
@@ -146,15 +147,28 @@ def createModel(layer):
             d.multiply(0.5)
             obj = makeBruttoFace(a, b.Space)
             obj.Placement.move(d)
+
+            shape = obj.Shape
+            high = shape.BoundBox.ZMax
+            low = shape.BoundBox.ZMin
+            (z_high, slab) = find_closest(slabs, high)
+            (z_low, slab) = find_closest(slabs, low)
+            vh = filter(lambda v: EnVisHelper.isClose(v.Z, high), shape.Vertexes)
+            vl = filter(lambda v: EnVisHelper.isClose(v.Z, low), shape.Vertexes)
+            replacements = [(v, v.translated((0, 0, z_high - high))) for v in vh]
+            replacements.extend([(v, v.translated((0, 0, z_low - low))) for v in vl])
+            obj.Shape = shape.replaceShape(replacements)
+
             brutto_faces.append(obj)
+
         for sb in external:
             obj = handle_external_case(sb)
             if project.followSlabs:
                 baseedge = EnVisHelper.find_lowest(obj.Shape.Edges)
-                slab = find_closest(slabs, baseedge.BoundBox.ZMin)
+                (z, slab) = find_closest(slabs, baseedge.BoundBox.ZMin)
                 d = EnVisHelper.get_distance_vector(baseedge, slab.Shape)
                 if abs(d.z) > 0.1:
-                    raise RuntimeError("Non-horizontal movement")
+                    raise RuntimeError("Non-horizontal movement for " + str(d.z))
                 obj.Placement.move(d)
             brutto_faces.append(obj)
 
