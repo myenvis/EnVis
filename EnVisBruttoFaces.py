@@ -1,11 +1,13 @@
 import FreeCAD,Draft
+import EnVisHelper
 
 class EnVisBruttoFace:
     def __init__(self, obj):
         self.children = []  # Objects related to this face
         obj.addProperty('App::PropertyLinkSub', 'BaseFace', 'Envis', '')
         obj.Proxy = self
-        obj.ViewObject.Proxy = 0
+        if obj.ViewObject:
+            obj.ViewObject.Proxy = 0
 
 #    def execute(self, obj):
 #        parent, face = faceFromLinkSub(obj.BaseFace)
@@ -91,7 +93,7 @@ def createModel(layer):
     windows = []
     doors = [] # TODO: not yet used
     walls = []
-    slabs = [] # Tuples (ZMax, obj)
+    slabs = [] # Tuples (ZMax, BruttoFace)
 
     def handle_external_case(sb):
         obj, faceind = faceFromLinkSub(sb.BaseFace)
@@ -107,7 +109,6 @@ def createModel(layer):
         elif beObj.IfcType == "Window":
             windows.append(sbs)
         elif beObj.IfcType == "Slab":
-            slabs.append((beObj.Shape.BoundBox.ZMax, beObj))
             internal,external = innerOuter(sbs)
             while internal:
                 a,b = pop_pair(internal)
@@ -116,13 +117,26 @@ def createModel(layer):
                 else:
                     obj = makeBruttoFace(b, a.Space)
                 brutto_faces.append(obj)
+                slabs.append((beObj.Shape.BoundBox.ZMax, obj))
             for sb in external:
                 # TODO Detect faces to drop
-                brutto_faces.append(handle_external_case(sb))
+                obj = handle_external_case(sb)
+                brutto_faces.append(obj)
+                slabs.append((beObj.Shape.BoundBox.ZMax, obj))
         else:
             extra.append(sbs)
 
-    slabs.sort()
+#    slabs.sort()
+    def find_closest(elements, target):
+        # TODO: Implement something faster
+        diff = abs(elements[0][0] - target) + 1
+        for (value, obj) in elements:
+            d = abs(value - target)
+            if d < diff:
+                d = diff
+                result = obj
+        return result
+
     for sbs in walls:
         internal,external = innerOuter(sbs)
         while internal:
@@ -134,7 +148,15 @@ def createModel(layer):
             obj.Placement.move(d)
             brutto_faces.append(obj)
         for sb in external:
-            brutto_faces.append(handle_external_case(sb))
+            obj = handle_external_case(sb)
+            if project.followSlabs:
+                baseedge = EnVisHelper.find_lowest(obj.Shape.Edges)
+                slab = find_closest(slabs, baseedge.BoundBox.ZMin)
+                d = EnVisHelper.get_distance_vector(baseedge, slab.Shape)
+                if abs(d.z) > 0.1:
+                    raise RuntimeError("Non-horizontal movement")
+                obj.Placement.move(d)
+            brutto_faces.append(obj)
 
     lay = Draft.makeLayer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
