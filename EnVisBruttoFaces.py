@@ -70,6 +70,9 @@ def faceFromLinkSub(prop):
 def linkSubFromFace(obj, faceind):
     return (obj, ["Face" + str(faceind + 1)])
 
+def isBuildingObj(obj):
+    return hasattr(obj, "IfcType") and obj.IfcType in ["Wall", "Slab"]  # TODO extend list
+
 def createModel(layer):
     """build a brutto faces model from a layer or a set containing space boundaries"""
     if hasattr(layer, "Group"):
@@ -88,6 +91,8 @@ def createModel(layer):
     doc = FreeCAD.ActiveDocument
     project = doc.EnVisProject
 
+    building_objs = list(filter(lambda o: isBuildingObj(o) and hasattr(o, "Shape") and o.Shape.Solids, doc.Objects))
+
     brutto_faces = []
     extra = []
     windows = []
@@ -96,9 +101,32 @@ def createModel(layer):
     slabs = [] # Tuples (ZMax, BruttoFace)
 
     def handle_external_case(sb):
+        """Return a BruttoFace for SpaceBoundary or None, if it shoule be dropped
+
+        Not implemented: The BruttoFace is linked to the proper Außenraum"""
         obj, faceind = faceFromLinkSub(sb.BaseFace)
+        outer_face_ind = get_opposite(obj.Shape, faceind)
+        outer_face = obj.Shape.Faces[outer_face_ind]
+        d = EnVisHelper.get_distance_vector(obj.Shape.Faces[faceind], outer_face)
+        d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
+        offset_sb = sb.Shape.copy()
+        offset_sb.translate(d)
+        bbox = offset_sb.BoundBox
+        bbox.enlarge(project.intersectionTolerance)
+        candidates = list(filter(lambda o: o != obj and bbox.intersect(o.Shape.BoundBox), building_objs))
+        print("Found", len(candidates), "intersection candidates")
+        #offset_face = outer_face.translated(offset)
+        for o in candidates:
+            cover = offset_sb.common(o.Shape)
+            if cover.Faces:
+                f = cover.Faces[0]
+                print("candiate", o.Name, "has area ratio", f.Area/offset_sb.Area)
+                if isBuildingObj(o):
+                    print("Dropping")
+                    return None
+                # TODO create proper Außenraum
         if project.moveOuterSB:
-            return makeBruttoFace(sb, None, BaseFace=linkSubFromFace(obj, get_opposite(obj.Shape, faceind)))
+            return makeBruttoFace(sb, None, BaseFace=linkSubFromFace(obj, outer_face_ind))
         else:
             return makeBruttoFace(sb, None)
 
@@ -119,8 +147,9 @@ def createModel(layer):
                 brutto_faces.append(obj)
                 slabs.append((obj.Shape.BoundBox.ZMax, obj))
             for sb in external:
-                # TODO Detect faces to drop
                 obj = handle_external_case(sb)
+                if not obj:
+                    continue
                 brutto_faces.append(obj)
                 slabs.append((obj.Shape.BoundBox.ZMax, obj))
         else:
@@ -165,7 +194,7 @@ def createModel(layer):
                 candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
                 for e in candidates:
                     d = EnVisHelper.get_distance_vector(e, floor.Shape.OuterWire)
-                    if d.Length > 500: # TODO: Maybe add configuration setting "maximum snapping distance"
+                    if d.Length > 500: # TODO: Add configuration setting or auto-detection
                         continue
                     replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
                 if replacements:
@@ -175,6 +204,8 @@ def createModel(layer):
 
         for sb in external:
             obj = handle_external_case(sb)
+            if not obj:
+                continue
             if project.followSlabs:
                 baseedge = EnVisHelper.find_lowest(obj.Shape.Edges)
                 (z, slab) = find_closest(slabs, baseedge.BoundBox.ZMin)
