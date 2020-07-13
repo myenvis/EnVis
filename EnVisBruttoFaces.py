@@ -96,7 +96,6 @@ def createModel(layer):
     brutto_faces = []
     extra = []
     windows = []
-    doors = [] # TODO: not yet used
     walls = []
     slabs = [] # Tuples (ZMax, BruttoFace)
 
@@ -134,8 +133,8 @@ def createModel(layer):
         beObj = sbs[0].BuildingElement
         if beObj.IfcType == "Wall":
             walls.append(sbs)
-        elif beObj.IfcType == "Window":
-            windows.append(sbs)
+        elif beObj.IfcType in ["Window", "Door"]:
+            windows.extend(sbs)
         elif beObj.IfcType == "Slab":
             internal,external = innerOuter(sbs)
             while internal:
@@ -214,6 +213,27 @@ def createModel(layer):
                     raise RuntimeError("Non-horizontal movement for " + str(d.z))
                 obj.Placement.move(d)
             brutto_faces.append(obj)
+
+    ws = iter(windows)
+    for sb in ws:
+        if sb.Internal:
+            partner = next(ws)
+            other = sb.Space
+        else:
+            other = None  # TODO: Außenraum
+        obj = makeBruttoFace(sb, other)
+        obj.Shape = sb.Shape
+        obj.Placement = sb.Placement
+        brutto_faces.append(obj)
+
+    for sbs in extra:
+        if sbs[0].BuildingElement.IfcType == "Covering":
+            # TODO: Ev. Platzhalterbelegungen extrahieren
+            continue
+        if sbs[0].BuildingElement.IfcType == "Building Element Proxy":
+            print("Found 'IfcBuildingElementProxy': Please fix your IFC file")
+        else:
+            print("Unhandled object", sbs[0].BuildingElement.Name, "has", len(sbs), "space boundaries")
 
     lay = Draft.makeLayer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
