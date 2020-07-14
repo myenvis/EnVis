@@ -1,10 +1,14 @@
 import FreeCAD,Draft
+import BOPTools.SplitAPI as split
 import EnVisHelper
 
 class EnVisBruttoFace:
     def __init__(self, obj):
         self.children = []  # Objects related to this face
         obj.addProperty('App::PropertyLinkSub', 'BaseFace', 'Envis', '')
+        obj.addProperty('App::PropertyLink', 'Space', 'Envis', '')
+        obj.addProperty('App::PropertyLink', 'Space2', 'Envis', '')
+        obj.addProperty('App::PropertyLink', 'SpaceBoundary', 'Envis', '')
         obj.Proxy = self
         if obj.ViewObject:
             obj.ViewObject.Proxy = 0
@@ -20,6 +24,9 @@ def makeBruttoFace(space_boundary, other_space, BaseFace=None, doc=None):
 
     obj = doc.addObject("Part::FeaturePython", "BruttoFace" + space_boundary.Name)
     EnVisBruttoFace(obj)
+    obj.Space = space_boundary.Space
+    obj.Space2 = other_space
+    obj.SpaceBoundary = space_boundary
     if BaseFace:
         obj.BaseFace = BaseFace
     else:
@@ -80,14 +87,7 @@ def createModel(layer):
     else: 
         boundaries = layer
 
-    byBE = {} # map: name -> list<space boundaries>
-    # TODO: which name is this?
-    for sb in boundaries:
-        try:
-            byBE[sb.BuildingElement.Name].append(sb)
-        except KeyError:
-            byBE[sb.BuildingElement.Name] = [sb]
-
+    byBE = EnVisHelper.mapProperty(boundaries, lambda sb: sb.BuildingElement.Name)
     doc = FreeCAD.ActiveDocument
     project = doc.EnVisProject
 
@@ -237,6 +237,50 @@ def createModel(layer):
 
     lay = Draft.makeLayer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
+
+    # gathering and placing all the faces is complete
+    # next step: split the faces to match the related spaces
+    by_BaseFace = EnVisHelper.mapProperty(brutto_faces, lambda o: (o.BaseFace[0], o.BaseFace[1][0]))
+    for group in by_BaseFace.values():
+        spaces = set()
+        for obj in group:
+            spaces.add(obj.Space)
+            spaces.add(obj.Space2)
+        pairs = set()
+        for m in spaces:
+            s = []
+            for o in group:
+                if o.Space2 == m:
+                    s.append(o.Space)
+                elif o.Space == m:
+                    s.append(o.Space2)
+            while s:
+                cur = s.pop()
+                for i in s:
+                    pairs.add((cur, i))
+
+        splitters = []
+        while pairs:
+            (s1, s2) = spaces = pairs.pop()
+            pairs.discard((s2, s1))
+            candidates = list(filter(lambda f: isBuildingObj(f.BaseFace[0]) and f.Space in spaces and f.Space2 in spaces, brutto_faces))
+            if len(candidates) != 1:
+                print("FIXME:", len(candidates), "candidates for splitting", group[0].Name)
+                continue
+            splitters.append(candidates[0].Shape.findPlane().toShape())
+        if splitters:
+            compound = split.slice(group[0].Shape, splitters, "Split")
+            #print("Number of faces: splitters:", len(splitters), "compound:", len(compound.Faces), "group:", len(group))
+            for f in compound.Faces:
+                best = None
+                dist = f.BoundBox.DiagonalLength
+                for target in group:
+                    d = f.BoundBox.Center.distanceToPoint(target.SpaceBoundary.Shape.BoundBox.Center)
+                    if d < dist:
+                        dist = d
+                        best = target
+                best.Shape = f
+
     doc.recompute()
 
 if FreeCAD.GuiUp:

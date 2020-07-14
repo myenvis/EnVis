@@ -19,3 +19,21 @@ def get_distance_vector(base_shape, target_shape):
 
 def isClose(x, y):
     return abs(x - y) < 0.1
+
+def mapProperty(items, key_func):
+    """Create a map for grouping items by some property
+
+    items: any iterable as input
+    key_func: how to calculate the property of items
+
+    The map values are lists because key_func isn't exepected to yield
+    unique properties."""
+
+    result = {}
+    for i in items:
+        key = key_func(i)
+        try:
+            result[key].append(i)
+        except KeyError:
+            result[key] = [i]
+    return result
