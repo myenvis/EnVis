@@ -187,17 +187,11 @@ def createModel(layer):
             replacements = [(v, v.translated((0, 0, z_high - high))) for v in vh]
             replacements.extend([(v, v.translated((0, 0, z_low - low))) for v in vl])
             obj.Shape = shape.replaceShape(replacements)
+            # TODO call Shape.fix() here?
             if project.followSlabs:
-                shape = obj.Shape
-                replacements = []
-                candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
-                for e in candidates:
-                    d = EnVisHelper.get_distance_vector(e, floor.Shape.OuterWire)
-                    if d.Length > 500: # TODO: Add configuration setting or auto-detection
-                        continue
-                    replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
-                if replacements:
-                    obj.Shape = shape.replaceShape(replacements)
+                new_shape = EnVisHelper.snap_by_resize_Zlength(obj.Shape, floor)
+                if new_shape:
+                    obj.Shape = new_shape
 
             brutto_faces.append(obj)
 
@@ -206,12 +200,17 @@ def createModel(layer):
             if not obj:
                 continue
             if project.followSlabs:
-                baseedge = EnVisHelper.find_lowest(obj.Shape.Edges)
+                baseedge = EnVisHelper.find_lowest(obj.Shape.OuterWire.Edges)
                 (z, slab) = find_closest(slabs, baseedge.BoundBox.ZMin)
                 d = EnVisHelper.get_distance_vector(baseedge, slab.Shape)
                 if abs(d.z) > 0.1:
                     raise RuntimeError("Non-horizontal movement for " + str(d.z))
                 obj.Placement.move(d)
+                #lambda e: baseedge.Curve.Direction.getAngle(e.Curve.Direction) > 0.0
+                new_shape = EnVisHelper.snap_by_resize_Zlength(obj.Shape, slab)
+                if new_shape:
+                    obj.Shape = new_shape
+
             brutto_faces.append(obj)
 
     ws = iter(windows)

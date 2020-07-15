@@ -17,6 +17,22 @@ def get_distance_vector(base_shape, target_shape):
             raise RuntimeError("Solutions don't match")
     return d
 
+def snap_by_resize_Zlength(shape, target):
+    replacements = []
+    candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
+    for e in candidates:
+        d = get_distance_vector(e, target.Shape.OuterWire)
+        if d.Length < 500 and d.Length > 0.0: # TODO: Add configuration setting or auto-detection
+            replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
+    if replacements:
+        new_shape = shape.replaceShape(replacements)
+        if not new_shape.isValid():
+            new_shape.fix(0, 0, 0)
+        if not new_shape.isValid():  # This is somewhat drastic, maybe ommit for releases
+            new_shape.check()
+        return new_shape
+    return None
+
 def isClose(x, y):
     return abs(x - y) < 0.1
 
@@ -37,3 +53,4 @@ def mapProperty(items, key_func):
         except KeyError:
             result[key] = [i]
     return result
+
