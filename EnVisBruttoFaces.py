@@ -1,6 +1,8 @@
 import FreeCAD,Draft
+import math
 import BOPTools.SplitAPI as split
 import EnVisHelper
+import EnVisOuterSpace
 
 class EnVisBruttoFace:
     def __init__(self, obj):
@@ -91,7 +93,7 @@ def createModel(layer):
     doc = FreeCAD.ActiveDocument
     project = doc.EnVisProject
 
-    building_objs = list(filter(lambda o: isBuildingObj(o) and hasattr(o, "Shape") and o.Shape.Solids, doc.Objects))
+    building_objs = list(filter(lambda o: "isBuildingObj(o)" and hasattr(o, "IfcType") and hasattr(o, "Shape") and o.Shape.Solids, doc.Objects))  # TODO
 
     brutto_faces = []
     extra = []
@@ -107,27 +109,36 @@ def createModel(layer):
         outer_face_ind = get_opposite(obj.Shape, faceind)
         outer_face = obj.Shape.Faces[outer_face_ind]
         d = EnVisHelper.get_distance_vector(obj.Shape.Faces[faceind], outer_face)
-        d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
+        offset = d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
         offset_sb = sb.Shape.copy()
-        offset_sb.translate(d)
+        offset_sb.translate(offset)
         bbox = offset_sb.BoundBox
         bbox.enlarge(project.intersectionTolerance)
         candidates = list(filter(lambda o: o != obj and bbox.intersect(o.Shape.BoundBox), building_objs))
         print("Found", len(candidates), "intersection candidates")
-        #offset_face = outer_face.translated(offset)
+        coverings = []
         for o in candidates:
             cover = offset_sb.common(o.Shape)
             if cover.Faces:
+                if o.IfcType == "Covering":  # TODO recursive offset/intersection
+                    coverings.append(o)
+                    continue
                 f = cover.Faces[0]
                 print("candiate", o.Name, "has area ratio", f.Area/offset_sb.Area)
                 if isBuildingObj(o):
                     print("Dropping")
                     return None
-                # TODO create proper Außenraum
+                else:  # Bedeckung durch Gelände oÄ
+                    outer_space = EnVisOuterSpace.get_outer_space(o)
+                    if EnVisHelper.isClose(f.Area, offset_sb.Area):
+                        break
+                    # TODO add outer_space to children
+        outer_space = EnVisOuterSpace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
+        # TODO add coverings to children
         if project.moveOuterSB:
-            return makeBruttoFace(sb, None, BaseFace=linkSubFromFace(obj, outer_face_ind))
+            return makeBruttoFace(sb, outer_space, BaseFace=linkSubFromFace(obj, outer_face_ind))
         else:
-            return makeBruttoFace(sb, None)
+            return makeBruttoFace(sb, outer_space)
 
     for sbs in byBE.values():
         beObj = sbs[0].BuildingElement
