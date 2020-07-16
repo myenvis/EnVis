@@ -11,6 +11,10 @@ import ifcopenshell
 
 def getObject(doc, ent):
     """ get object by IFC global ID """
+    
+    if not ent:
+        return None
+
     objs = doc.Objects
     for o in objs:
         if hasattr(o, "GlobalId") and o.GlobalId == ent.GlobalId:
@@ -70,13 +74,14 @@ class SpaceBoundaries:
             else:
                 return str(e.id())
         space = sbrel.RelatingSpace
-        boundary_elem = sbrel.RelatedBuildingElement
         surface = sbrel.ConnectionGeometry.SurfaceOnRelatingElement
-        if boundary_elem:
-            name = 'Raum' + name(space) + '_zu_' + name(boundary_elem) + '_' + str(sbrel.id())
+        building_element = getObject(FreeCAD.ActiveDocument, sbrel.RelatedBuildingElement)
+        if building_element:
+            name = 'Raum' + name(space) + '_zu_' + building_element.Label + '_' + str(sbrel.id())
         else:
             name = 'Raum' + name(space) + '_' + str(sbrel.id())
             print("SpaceBoundary without building element: ", sbrel)
+            building_element = Arch.makeComponent(None, name="BrokenSpaceBoundary")
         if sbrel.PhysicalOrVirtualBoundary == 'PHYSICAL':
             green = 0.0
         else:
@@ -90,7 +95,7 @@ class SpaceBoundaries:
         obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
         EnVisIfcSB(obj)
         obj.Space = FreeCAD.ActiveDocument.getObjectsByLabel(space.Name)[0]
-        obj.BuildingElement = getObject(FreeCAD.ActiveDocument, boundary_elem)
+        obj.BuildingElement = building_element
 
         if len(shape.Faces) == 1:
             obj.Shape = shape.Faces[0]

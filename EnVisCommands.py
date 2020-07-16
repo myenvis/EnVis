@@ -44,9 +44,10 @@ class _CommandImport:
         else:
             docname = os.path.basename(self.filename)
         try:
-            importIFC.insert(ifcfile, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
+            importIFC.insert(ifcfile, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding") + ifcfile.by_type("IfcVirtualElement")])
+#            importIFC.insert(ifcfile, FreeCAD.ActiveDocument.Name, root="IfcVirtualElement")
         except TypeError:
-            importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
+            importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding") + ifcfile.by_type("IfcVirtualElement")])
 
         p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
         EnVisProject.EnVisProject(p)
