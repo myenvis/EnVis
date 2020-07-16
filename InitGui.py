@@ -42,7 +42,7 @@ static char * IFC_xpm[] = {
 
         import DraftTools
         import Arch
-        import EnVisCommands,EnVisBruttoFaces
+        import EnVisCommands,EnVisBruttoFaces,EnVisSetup
         try:
             Gui.activateWorkbench("BIMWorkbench")
         except KeyError:
@@ -92,7 +92,7 @@ static char * IFC_xpm[] = {
                       "Arch_ToggleIfcBrepFlag",
                       "Arch_ToggleSubs","Arch_Survey","BIM_Diff","BIM_IfcExplorer"]
 
-        self.envis = ["EnVis_Import","EnVis_BruttoFl"]
+        self.envis = ["EnVis_Import","EnVis_BruttoFl","EnVis_Setup"]
 
 
         # post-0.18 tools
@@ -151,7 +151,6 @@ static char * IFC_xpm[] = {
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","3D/BIM tools"),self.bimtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Annotation tools"),self.annotationtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Modification tools"),self.modify)
-        #self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Manage tools"),self.manage)
 
         # create menus
 
