@@ -1,5 +1,4 @@
-# TODO: rename to Import
-# TODO: move to module "commands"
+# TODO: rename to EnVisImport
 
 import FreeCAD,os,EnVisProject
 

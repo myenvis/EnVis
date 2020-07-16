@@ -22,13 +22,13 @@ def snap_by_resize_Zlength(shape, target):
     candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
     for e in candidates:
         d = get_distance_vector(e, target.Shape.OuterWire)
-        if d.Length < 500 and d.Length > 0.0: # TODO: Add configuration setting or auto-detection
+        if d.Length < 500 and d.Length > 0.0: # TODO: Add auto-detection
             replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
     if replacements:
         new_shape = shape.replaceShape(replacements)
         if not new_shape.isValid():
             new_shape.fix(0, 0, 0)
-        if not new_shape.isValid():  # This is somewhat drastic, maybe ommit for releases
+        if not new_shape.isValid():  # This is somewhat drastic, maybe omit for releases
             new_shape.check()
         return new_shape
     return None
@@ -42,7 +42,7 @@ def mapProperty(items, key_func):
     items: any iterable as input
     key_func: how to calculate the property of items
 
-    The map values are lists because key_func isn't exepected to yield
+    The map values are lists because key_func isn't expected to yield
     unique properties."""
 
     result = {}
