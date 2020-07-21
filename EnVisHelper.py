@@ -70,7 +70,9 @@ def snap_by_resize_Zlength(shape, target):
     for e in candidates:
         d = get_distance_vector(e, target.Shape.OuterWire)
         if d.Length < 500 and d.Length > 0.0: # TODO: Add auto-detection
-            replacements.extend(zip(e.Vertexes, e.translated(d).Vertexes))
+            e_new = e.translated(d)
+            replacements.append((e, e_new))
+            replacements.extend(zip(e.Vertexes, e_new.Vertexes))
     if replacements:
         new_shape = shape.replaceShape(replacements)
         if not new_shape.isValid():
