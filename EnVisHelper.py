@@ -17,6 +17,53 @@ def get_distance_vector(base_shape, target_shape):
             raise RuntimeError("Solutions don't match")
     return d
 
+def all_vertices_inside(vertices, shape):
+    for v in vertices:
+        if not shape.isInside(v.Point, 0.0, True):
+            return False
+    return True
+
+def get_opposite_face(shape, faceidx):
+    """Return the opposite face of shape"""
+    n = shape.Faces[faceidx].normalAt(0,0)
+    i = 0
+    while n.getAngle(-shape.Faces[i].normalAt(0,0)) > 0.001:
+        i += 1
+    return i
+
+def get_aligned_face(shape, face):
+    """Return (index, offset_vector) of the closest face of shape, that has the same (anti)normal
+
+    TODO: If there are multiple coplanar faces, a random one is selected, not the closest"""
+    n = face.normalAt(0,0)
+    p = face.findPlane()
+    i = 0
+    best = 2e100
+    for f in shape.Faces:
+        dot = n.dot(f.normalAt(0,0))
+        if dot < -0.99 or dot > 0.99:
+#            d = f.distToShape(face)[0] # maybe faster: (f2.valueAt(0,0) - f1.valueAt(0,0)).Length
+            d = p.projectPoint(f.Vertexes[0].Point, Method="LowerDistance")
+            if d < best:
+                best = d
+                best_i = i
+        i += 1
+    pos = shape.Faces[best_i].Surface.Position
+    return (best_i, p.projectPoint(pos) - pos)
+
+def make_intersection_candidate(shape, face, overlap=1):
+    """make_intersection_candidate(shape, face, overlap=1):
+    return a copy of shape translated along normals so that it might intersect face
+
+    overlap is in mm"""
+    (face_ind, d) = get_aligned_face(shape, face)
+    if d.Length == 0.0:
+        return shape
+    d.multiply(1 + overlap/d.Length)
+    test_shape = shape.copy()
+    test_shape.translate(d)
+    return test_shape
+
 def snap_by_resize_Zlength(shape, target):
     replacements = []
     candidates = sorted(shape.OuterWire.Edges, key=lambda e: e.BoundBox.ZLength)[-2:]
