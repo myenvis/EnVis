@@ -137,43 +137,50 @@ def createModel(layer):
         """Return a BruttoFace for SpaceBoundary or None, if it shoule be dropped
 
         The BruttoFace is linked to the proper Außenraum"""
-        obj, faceind = faceFromLinkSub(sb.BaseFace)
-        outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
-        outer_face = obj.Shape.Faces[outer_face_ind]
-        d = EnVisHelper.get_distance_vector(obj.Shape.Faces[faceind], outer_face)
-        offset = d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
-        offset_sb = sb.Shape.copy()
-        offset_sb.translate(offset)
-        bbox = offset_sb.BoundBox
-        bbox.enlarge(project.intersectionTolerance)
-        candidates = list(filter(lambda o: o != obj and bbox.intersect(o.Shape.BoundBox), building_objs))
-        print("Found", len(candidates), "intersection candidates")
+        support_objs = [faceFromLinkSub(sb.BaseFace)]
         coverings_full = []
         coverings_partial = []
         outer_space = None
-        for o in candidates:
-            cover = offset_sb.common(o.Shape)
-            if cover.Faces:
-                f = cover.Faces[0]
-                if o.IfcType == "Covering":  # TODO recursive offset/intersection
-                    if EnVisHelper.isClose(f.Area, offset_sb.Area):
-                        coverings_full.append(o)
-                    else:
-                        coverings_partial.append(o)
-                    continue
-                print("candiate", o.Name, "has area ratio", f.Area/offset_sb.Area)
-                if isBuildingObj(o):
-                    print("Dropping")
-                    return None
-                else:  # Bedeckung durch Gelände oÄ
-                    outer_space = EnVisOuterSpace.get_outer_space(o)
-                    if EnVisHelper.isClose(f.Area, offset_sb.Area):
-                        break
-                    coverings_partial.insert(0, outer_space)
-                    outer_space = None
+        while support_objs:
+            obj, faceind = support_objs.pop()
+            outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
+            outer_face = obj.Shape.Faces[outer_face_ind]
+            d = EnVisHelper.get_distance_vector(sb.Shape, outer_face)
+            offset = d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
+            offset_sb = sb.Shape.copy()
+            offset_sb.translate(offset)
+            bbox = offset_sb.BoundBox
+            bbox.enlarge(project.intersectionTolerance)
+            candidates = list(filter(lambda o: o != obj and bbox.intersect(o.Shape.BoundBox), building_objs))
+            print("Found", len(candidates), "intersection candidates")
+            for o in candidates:
+                cover = offset_sb.common(o.Shape)
+                if cover.Faces:
+                    f = cover.Faces[0]
+                    if o.IfcType == "Covering":
+                        if EnVisHelper.isClose(f.Area, offset_sb.Area):
+                            coverings_full.append(o)
+                        else:
+                            coverings_partial.append(o)
+                        support_objs.append((o, EnVisHelper.get_aligned_face(o.Shape, outer_face)[0]))
+                        print("adding", o.Name)
+                        continue
+                    print("candidate", o.Name, "has area ratio", f.Area/offset_sb.Area)
+                    if isBuildingObj(o):
+                        print("Dropping")
+                        return None
+                    else:  # Bedeckung durch Gelände oÄ
+                        outer_space = EnVisOuterSpace.get_outer_space(o)
+                        if EnVisHelper.isClose(f.Area, offset_sb.Area):
+                            support_objs = []
+                            break
+                        coverings_partial.insert(0, outer_space)
+                        outer_space = None
         if not outer_space:
             outer_space = EnVisOuterSpace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
         if project.moveOuterSB:
+            obj, faceind = faceFromLinkSub(sb.BaseFace)
+            outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
             bf = makeBruttoFace(sb, outer_space, BaseFace=linkSubFromFace(obj, outer_face_ind))
         else:
             bf = makeBruttoFace(sb, outer_space)
@@ -288,9 +295,6 @@ def createModel(layer):
         else:
             print("Unhandled object", sbs[0].BuildingElement.Name, "has", len(sbs), "space boundaries")
 
-    lay = Draft.makeLayer("BruttoFlächen", transparency=80)
-    lay.Group = brutto_faces
-
     # gathering and placing all the faces is complete
     # next step: split the faces to match the related spaces
     by_BaseFace = EnVisHelper.mapProperty(brutto_faces, lambda o: (o.BaseFace[0], o.BaseFace[1][0]))
@@ -336,6 +340,7 @@ def createModel(layer):
 
     # final step: split the brutto faces, that have more then one outer space
     # and also setup coverings
+    news = []
     for bf in brutto_faces:
         while bf.Proxy.partial_covers and type(bf.Proxy.partial_covers[0].Proxy) == EnVisOuterSpace.EnVisOuterSpace:
             outer_space = bf.Proxy.partial_covers.pop(0)
@@ -348,8 +353,13 @@ def createModel(layer):
             new.Shape = new_face
             new.Space2 = outer_space
             setup_coverings(new)
+            news.append(new)
             bf.Shape = rest_face
         setup_coverings(bf)
+
+    brutto_faces.extend(news)
+    lay = Draft.makeLayer("BruttoFlächen", transparency=80)
+    lay.Group = brutto_faces
 
     doc.recompute()
 
