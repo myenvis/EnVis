@@ -76,7 +76,7 @@ def setup_coverings(bf):
         else:
             bf.Proxy.partial_covers.append(c.Name)
 
-    bf.Proxy.full_covers = full_covers
+    bf.Proxy.full_covers = list(full_covers)
     bf.CoversSpace = list(filter(lambda o: o not in to_delete, bf.CoversSpace))
     bf.CoversSpace2 = list(filter(lambda o: o not in to_delete, bf.CoversSpace2))
 
