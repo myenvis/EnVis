@@ -59,10 +59,9 @@ def setup_coverings(bf):
         return obj.Name
 
     doc = bf.Document
-    full_covers = {nameify(o) for o in bf.Proxy.full_covers}
+    covers = {nameify(o) for o in bf.Proxy.full_covers}
     partial_covers = set(bf.Proxy.partial_covers)
     bf.Proxy.partial_covers = []
-    to_delete = []
 
     for c in partial_covers:
         if type(c) == str:
@@ -70,15 +69,16 @@ def setup_coverings(bf):
         test_shape = make_intersection_candidate(c.Shape, bf.Shape)
         f = bf.Shape.common(test_shape)
         if f.Area < 100:  # mm^2
-            to_delete.append(c)
+            pass
         elif f.Area > bf.Shape.Area - 100:
-            full_covers.add(c.Name)
+            covers.add(c.Name)
         else:
             bf.Proxy.partial_covers.append(c.Name)
 
-    bf.Proxy.full_covers = list(full_covers)
-    bf.CoversSpace = list(filter(lambda o: o not in to_delete, bf.CoversSpace))
-    bf.CoversSpace2 = list(filter(lambda o: o not in to_delete, bf.CoversSpace2))
+    bf.Proxy.full_covers = list(covers)
+    covers.update(bf.Proxy.partial_covers)
+    bf.CoversSpace = list(filter(lambda o: o.Name in covers, bf.CoversSpace))
+    bf.CoversSpace2 = list(filter(lambda o: o.Name  in covers, bf.CoversSpace2))
 
 def innerOuter(sbs):
     i = set()
