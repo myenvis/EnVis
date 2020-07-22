@@ -41,7 +41,7 @@ def get_aligned_face(shape, face):
     best = 2e100
     for f in shape.Faces:
         dot = n.dot(f.normalAt(0,0))
-        if dot < -0.99 or dot > 0.99:
+        if dot < -0.99 or dot > 0.99:  # check if faces are (anti)parallel
 #            d = f.distToShape(face)[0] # maybe faster: (f2.valueAt(0,0) - f1.valueAt(0,0)).Length
             d = p.projectPoint(f.Vertexes[0].Point, Method="LowerDistance")
             if d < best:
