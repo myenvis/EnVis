@@ -58,7 +58,26 @@ class _CommandImport:
         sb.show_all()
 
 
+class _CommandSelectRelated:
+    def GetResources(self):
+        return { #'Pixmap'  : 'Arch_Add',
+                'MenuText': QtCore.QT_TRANSLATE_NOOP("EnVis_SelectRelated","Select related"),
+                'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnVis_SelectRelated","Automatisch abhängige Objekte auswählen")}
+
+    def IsActive(self):
+        return bool(FreeCADGui.Selection.getSelection())
+
+    def Activated(self):
+        new_sel = []
+        for o in FreeCADGui.Selection.getSelection():
+            new_sel.extend(o.InList)
+
+        FreeCADGui.Selection.clearSelection()
+        for o in new_sel:
+            FreeCADGui.Selection.addSelection(o)
+
 if FreeCAD.GuiUp:
     FreeCADGui.addCommand('EnVis_Import',_CommandImport())
+    FreeCADGui.addCommand('EnVis_SelectRelated',_CommandSelectRelated())
 
 # TODO: Unit Test with trivial import

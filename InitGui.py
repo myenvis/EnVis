@@ -92,7 +92,7 @@ static char * IFC_xpm[] = {
                       "Arch_ToggleIfcBrepFlag",
                       "Arch_ToggleSubs","Arch_Survey","BIM_Diff","BIM_IfcExplorer"]
 
-        self.envis = ["EnVis_Import","EnVis_BruttoFl","EnVis_Setup"]
+        self.envis = ["EnVis_Import","EnVis_BruttoFl","EnVis_Setup","EnVis_SelectRelated"]
 
 
         # post-0.18 tools
