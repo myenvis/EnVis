@@ -1,4 +1,12 @@
 
+def get_object_by_guid(doc, guid):
+    """ get object by IFC global ID """
+
+    objs = doc.Objects
+    for o in objs:
+        if hasattr(o, "GlobalId") and o.GlobalId == guid:
+            return o
+
 def find_lowest(shapes):
     """Find the lowest shape in a list of shapes"""
     lowest = shapes[0].BoundBox.ZMax
@@ -63,6 +71,15 @@ def make_intersection_candidate(shape, face, overlap=1):
     test_shape = shape.copy()
     test_shape.translate(d)
     return test_shape
+
+def shape_get_edges_by_vertices(shape, vertices):
+    """Return list of all edges in shape, that have both vertices
+    in vertices"""
+    result = []
+    for e in shape.Edges:
+        if any(map(e.Vertexes[0].isEqual, vertices)) and any(map(e.Vertexes[1].isEqual, vertices)):
+            result.append(e)
+    return result
 
 def snap_by_resize_Zlength(shape, target):
     replacements = []
