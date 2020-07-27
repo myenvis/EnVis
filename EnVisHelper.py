@@ -103,3 +103,39 @@ def mapProperty(items, key_func):
             result[key] = [i]
     return result
 
+# Highly experimental function. Probably unuseable
+def replaceEdge(shape, old_edge, new_edge):
+    def get_other_edge(vertex, edge):
+        [edge1, edge2] = shape.ancestorsOfType(v0, Part.Edge)
+        if edge.isSame(edge1):
+            return edge2
+        return edge1
+
+    def get_other_vertex(edge, vertex):
+        if edge.Vertexes[0] == vertex:
+            return edge.Vertexes[1]
+        else:
+            return edge.Vertexes[0]
+
+    def resnap(edge, old_vertex, new_vertex):
+        p = edge.Curve.parameter(new_vertex.Point)
+        stable_vertex = get_other_vertex(edge, old_vertex)
+        [c1, c2] = edge.split(p).Edges
+        if old_vertex in c1.Vertexes:
+            c = c2
+        else:
+            c = c1
+        return c.replaceShape([(get_other_vertex(c, stable_vertex), new_vertex)])
+        ## Don't support extending for now
+        v = get_other_vertex(edge, old_vertex)
+        p2 = edge.Curve.parameter(v)
+        new_edge = edge.Curve.toShape(p, p2)
+
+    [v0, v1] = old_edge.Vertexes
+    e0 = get_other_edge(v0, old_edge)
+    e1 = get_other_edge(v1, old_edge)
+    new_e0 = resnap(e0, v0, new_edge.Vertexes[0])
+    new_e1 = resnap(e1, v1, new_edge.Vertexes[1])
+    replacements = [(old_edge,new_edge), (e0,new_e0), (e1,new_e1)]
+    replacements.extend(zip(old_edge.Vertexes, new_edge.Vertexes))
+    return shape.replaceShape(replacements)
