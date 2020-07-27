@@ -1,6 +1,6 @@
 # TODO: rename to EnVisImport
 
-import FreeCAD,os,EnVisProject
+import FreeCAD,os,EnVisProject,EnVisHelper
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -24,6 +24,7 @@ class _CommandImport:
 
     def Activated(self):
         # TODO: separate import function
+        import ArchWindow
         import ifcopenshell,importIFC,SpaceBoundary
         from PySide import QtCore,QtGui
 
@@ -49,6 +50,12 @@ class _CommandImport:
         except TypeError:
             importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding") + ifcfile.by_type("IfcVirtualElement")])
 
+        doc = FreeCAD.ActiveDocument
+        for window in filter(lambda o: hasattr(o, "Proxy") and type(o.Proxy) == ArchWindow._Window, doc.Objects):
+            ifc_window = ifcfile.by_guid(window.GlobalId)
+            ifc_wall = ifc_window.FillsVoids[0].RelatingOpeningElement.VoidsElements[0].RelatingBuildingElement
+            wall = EnVisHelper.get_object_by_guid(doc, ifc_wall.GlobalId)
+            window.Hosts = [wall]
         p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
         EnVisProject.EnVisProject(p)
         p.IFCFile = self.filename
