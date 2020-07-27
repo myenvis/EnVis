@@ -278,7 +278,7 @@ def createModel(layer):
     for sb in ws:
         if sb.Internal:
             partner = next(ws)
-            other = sb.Space
+            other = partner.Space
         else:
             other = None  # TODO: Außenraum
         obj = makeBruttoFace(sb, other)
