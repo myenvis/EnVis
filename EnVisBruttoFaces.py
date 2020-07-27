@@ -289,8 +289,27 @@ def createModel(layer):
     for sbs in extra:
         if sbs[0].BuildingElement.IfcType == "Covering":
             # TODO: Ev. Platzhalterbelegungen extrahieren
-            continue
-        if sbs[0].BuildingElement.IfcType == "Building Element Proxy":
+            for sb in sbs:
+                if sb.Internal:
+                    print("Don't know how internal SpaceBoundary on Covering makes sense: skipping")
+                    continue
+                # We assume that external SBs/Coverings always are on the side of the Space
+                bfs = list(filter(lambda bf: bf.Space == sb.Space or bf.Space2 == sb.Space, brutto_faces))
+                indices = EnVisHelper.get_closest_aligned_faces(map(lambda o: o.Shape, bfs), sb.Shape)
+                for i in indices:
+                    if bfs[i].Space == sb.Space:
+                        l = bfs[i].CoversSpace
+                        l.append(sb.BuildingElement)
+                        bfs[i].CoversSpace = l
+                    else:
+                        l = bfs[i].CoversSpace2
+                        l.append(sb.BuildingElement)
+                        bfs[i].CoversSpace2 = l
+                    if sb.Shape.Area > bfs[i].SpaceBoundary.Shape.Area - 100:  # mm^2
+                        bfs[i].Proxy.full_covers.append(sb.BuildingElement)
+                    else:
+                        fs[i].Proxy.partial_covers.append(sb.BuildingElement)
+        elif sbs[0].BuildingElement.IfcType == "Building Element Proxy":
             print("Found 'IfcBuildingElementProxy': Please fix your IFC file")
         else:
             print("Unhandled object", sbs[0].BuildingElement.Name, "has", len(sbs), "space boundaries")

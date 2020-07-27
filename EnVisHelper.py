@@ -1,3 +1,4 @@
+import math
 
 def get_object_by_guid(doc, guid):
     """ get object by IFC global ID """
@@ -38,6 +39,32 @@ def get_opposite_face(shape, faceidx):
     while n.getAngle(-shape.Faces[i].normalAt(0,0)) > 0.001:
         i += 1
     return i
+
+def face_is_aligned(face1, face2):
+    dot = face1.normalAt(0,0).dot(face2.normalAt(0,0))
+    return dot < -0.99 or dot > 0.99
+
+def get_closest_aligned_faces(faces, face, tolerance=0.1):
+    """Return indices of closest (within 1-2 tolerance) faces with the same (anti)normal"""
+
+    n = face.normalAt(0,0)
+    p = face.findPlane()
+   
+    best = math.inf
+    i = 0
+    for f in faces:
+        dot = n.dot(f.normalAt(0,0))
+        if dot < -0.99 or dot > 0.99:  # check if faces are (anti)parallel
+#            d = f.distToShape(face)[0] # maybe faster: (f2.valueAt(0,0) - f1.valueAt(0,0)).Length
+            d = p.projectPoint(f.Vertexes[0].Point, Method="LowerDistance")
+            if d < best - tolerance:
+                best = d
+                result = [i]
+            elif d < best + tolerance:
+                result.append(i)
+        i += 1
+    return result
+
 
 def get_aligned_face(shape, face):
     """Return (index, offset_vector) of the closest face of shape, that has the same (anti)normal
