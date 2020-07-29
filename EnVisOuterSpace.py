@@ -42,7 +42,7 @@ def get_outer_space(obj, doc = None):
                 return o
     else:
         for o in doc.EnVisOuterSpaces.Group:
-            if o.Angle == obj:
+            if o.BaseObject == None and o.Angle == obj:
                 return o
 
     return add_outer_space(obj, doc)

@@ -1,6 +1,6 @@
 # TODO: rename to EnVisImport
 
-import FreeCAD,os,EnVisProject
+import FreeCAD,os,EnVisProject,EnVisHelper
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -24,6 +24,7 @@ class _CommandImport:
 
     def Activated(self):
         # TODO: separate import function
+        import ArchWindow
         import ifcopenshell,importIFC,SpaceBoundary
         from PySide import QtCore,QtGui
 
@@ -44,10 +45,17 @@ class _CommandImport:
         else:
             docname = os.path.basename(self.filename)
         try:
-            importIFC.insert(ifcfile, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
+            importIFC.insert(ifcfile, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding") + ifcfile.by_type("IfcVirtualElement")])
+#            importIFC.insert(ifcfile, FreeCAD.ActiveDocument.Name, root="IfcVirtualElement")
         except TypeError:
-            importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding")])
+            importIFC.insert(self.filename, docname, skip=uselessElements, only=[e.id() for e in ifcfile.by_type("IfcBuilding") + ifcfile.by_type("IfcVirtualElement")])
 
+        doc = FreeCAD.ActiveDocument
+        for window in filter(lambda o: hasattr(o, "Proxy") and type(o.Proxy) == ArchWindow._Window, doc.Objects):
+            ifc_window = ifcfile.by_guid(window.GlobalId)
+            ifc_wall = ifc_window.FillsVoids[0].RelatingOpeningElement.VoidsElements[0].RelatingBuildingElement
+            wall = EnVisHelper.get_object_by_guid(doc, ifc_wall.GlobalId)
+            window.Hosts = [wall]
         p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
         EnVisProject.EnVisProject(p)
         p.IFCFile = self.filename
@@ -57,7 +65,26 @@ class _CommandImport:
         sb.show_all()
 
 
+class _CommandSelectRelated:
+    def GetResources(self):
+        return { #'Pixmap'  : 'Arch_Add',
+                'MenuText': QtCore.QT_TRANSLATE_NOOP("EnVis_SelectRelated","Select related"),
+                'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnVis_SelectRelated","Automatisch abhängige Objekte auswählen")}
+
+    def IsActive(self):
+        return bool(FreeCADGui.Selection.getSelection())
+
+    def Activated(self):
+        new_sel = []
+        for o in FreeCADGui.Selection.getSelection():
+            new_sel.extend(o.InList)
+
+        FreeCADGui.Selection.clearSelection()
+        for o in new_sel:
+            FreeCADGui.Selection.addSelection(o)
+
 if FreeCAD.GuiUp:
     FreeCADGui.addCommand('EnVis_Import',_CommandImport())
+    FreeCADGui.addCommand('EnVis_SelectRelated',_CommandSelectRelated())
 
 # TODO: Unit Test with trivial import
