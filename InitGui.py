@@ -27,7 +27,6 @@ class EnVisWorkbench(Gui.Workbench):
         import envis.commands
         import EnVisCommands
         import EnVisBruttoFaces
-        import EnVisSetup
 
         from draftutils.messages import _log
 

@@ -1,6 +1,7 @@
 #***************************************************************************
 #*                                                                         *
 #*   Copyright (c) 2017 Yorik van Havre <yorik@uncreated.net>              *
+#*   Private license: 2020, EnVis                                          *
 #*                                                                         *
 #*   This program is free software; you can redistribute it and/or modify  *
 #*   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -19,40 +20,45 @@
 #*   USA                                                                   *
 #*                                                                         *
 #***************************************************************************
-"""This module contains a simplified FreeCAD setup"""
+"""This module contains a simplified BIM setup.
+
+TODO: assume only Python 3; do not test for Python 2.
+"""
 
 import os
 import sys
-import FreeCAD
+import PySide.QtCore as QtCore
+import PySide.QtGui as QtGui
+from PySide.QtCore import QT_TRANSLATE_NOOP
+
 import FreeCAD as App
+import FreeCADGui as Gui
 
 from draftutils.translate import translate
 
 
 class EnVisSetup:
-
+    """Command to setup the system."""
 
     def GetResources(self):
-        def QT_TRANSLATE_NOOP(scope, text):
-            return text
-
-        return {'Pixmap'  : ":icons/preferences-system.svg",
+        return {'Pixmap': ":icons/preferences-system.svg",
                 'MenuText': QT_TRANSLATE_NOOP("EnVis_Setup", "EnVis Setup..."),
-                'ToolTip' : QT_TRANSLATE_NOOP("EnVis_Setup", "Set some common FreeCAD preferences for EnVis workflow")}
+                'ToolTip': QT_TRANSLATE_NOOP("EnVis_Setup",
+                                             "Set some common FreeCAD preferences for EnVis workflow")}
 
     def Activated(self):
+        # How many times TechDraw dim arrows are smaller than Draft
+        TECHDRAWDIMFACTOR = 0.16
 
-        import FreeCADGui
-
-        TECHDRAWDIMFACTOR = 0.16 # How many times TechDraw dim arrows are smaller than Draft
-
-        # load dialog
-        from PySide import QtGui
-        self.form = FreeCADGui.PySideUic.loadUi(os.path.join(os.path.dirname(__file__),"dialogSetup.ui"))
+        # Load dialog, in the proper directory above this one
+        dirn = os.path.dirname(os.path.dirname(__file__))
+        ui = os.path.join(dirn, 'resources', 'dialog_setup.ui')
+        self.form = Gui.PySideUic.loadUi(ui)
 
         # center the dialog over FreeCAD window
-        mw = FreeCADGui.getMainWindow()
-        self.form.move(mw.frameGeometry().topLeft() + mw.rect().center() - self.form.rect().center())
+        mw = Gui.getMainWindow()
+        self.form.move(mw.frameGeometry().topLeft()
+                       + mw.rect().center() - self.form.rect().center())
 
         # connect signals / slots
         self.form.labelIfcOpenShell.linkActivated.connect(self.handleLink)
@@ -66,72 +72,78 @@ class EnVisSetup:
             import RebarTools
         except ImportError:
             m.append("Reinforcement")
+
         try:
             import BIMServer
         except ImportError:
             m.append("WebTools")
-        if sys.version_info.major < 3:
-            try:
-                import CommandsFrame
-            except ImportError:
-                m.append("Flamingo")
-        else:
-            try:
-                import CFrame
-            except ImportError:
-                m.append("Dodo")
+
+        try:
+            import CFrame
+        except ImportError:
+            m.append("Dodo")
+
         try:
             import FastenerBase
         except ImportError:
             m.append("Fasteners")
+
         try:
             import report
         except ImportError:
             m.append("Reporting")
+
         try:
             import ifcopenshell
         except ImportError:
             ifcok = False
         else:
             ifcok = True
+
         libok = False
-        librarypath = FreeCAD.ParamGet('User parameter:Plugins/parts_library').GetString('destination','')
+        librarypath = App.ParamGet('User parameter:Plugins/parts_library').GetString('destination','')
         if librarypath and os.path.exists(librarypath):
             libok = True
         else:
             # check if the library is at the standard addon location
-            librarypath = os.path.join(FreeCAD.getUserAppDataDir(),"Mod","parts_library")
+            librarypath = os.path.join(App.getUserAppDataDir(), "Mod", "parts_library")
             if os.path.exists(librarypath):
-                FreeCAD.ParamGet('User parameter:Plugins/parts_library').SetString('destination',librarypath)
+                App.ParamGet('User parameter:Plugins/parts_library').SetString('destination',librarypath)
                 libok = True
+
         if not libok:
             m.append("Parts Library")
         if m:
-            t = translate("EnVis","Some additional workbenches are not installed, that extend EnVis functionality:")+" <b>"+",".join(m)+"</b>. "+translate("EnVis","You can install them from menu Tools -> Addon manager.")
+            t = (translate("EnVis",
+                           "Some additional workbenches are not installed "
+                           "that extend EnVis functionality:")
+                 + " <b>" + ", ".join(m) + "</b>. "
+                 + translate("EnVis", "You can install them from menu Tools -> Addon manager."))
             self.form.labelMissingWorkbenches.setText(t)
             self.form.labelMissingWorkbenches.show()
+
         if not ifcok:
             self.form.labelIfcOpenShell.show()
-        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").GetString("snapModes","111111111101111") == "111111111101111":
+        if App.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").GetString("snapModes","111111111101111") == "111111111101111":
             self.form.labelSnapTip.show()
 
         # show dialog and exit if cancelled
-        FreeCADGui.EnVisSetupDialog = True # this is there to be easily detected by the EnVis tutorial
+        Gui.EnVisSetupDialog = True  # this is there to be easily detected by the EnVis tutorial
         result = self.form.exec_()
-        del FreeCADGui.EnVisSetupDialog
+        del Gui.EnVisSetupDialog
         if not result:
             return
 
         # set preference values
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/EnVis").SetBool("FirstTime",False)
+        App.ParamGet("User parameter:BaseApp/Preferences/Mod/EnVis").SetBool("FirstTime",False)
         unit = self.form.settingUnits.currentIndex()
         unit = [0,4,1,3,7,5][unit] # less choices in our simplified dialog
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Units").SetInt("UserSchema",unit)
-        if hasattr(FreeCAD.Units,"setSchema"):
-            FreeCAD.Units.setSchema(unit)
+        App.ParamGet("User parameter:BaseApp/Preferences/Units").SetInt("UserSchema",unit)
+        if hasattr(App.Units,"setSchema"):
+            App.Units.setSchema(unit)
         decimals = self.form.settingDecimals.value()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Units").SetInt("Decimals",decimals)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetBool("UseGlobalDecimals",True)
+        App.ParamGet("User parameter:BaseApp/Preferences/Units").SetInt("Decimals",decimals)
+        App.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetBool("UseGlobalDecimals",True)
 
         # TODO: check if we truly need to remove these options.
         # They were copied from the BIM code, but they were removed from
@@ -164,21 +176,21 @@ class EnVisSetup:
         # =====================================================================
 
         author = self.form.settingAuthor.text()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetString("prefAuthor",author)
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetString("prefAuthor",author)
         lic = self.form.settingLicense.currentIndex()
         lic = [0,1,2,4,5][lic] # less choices in our simplified dialog
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetInt("prefLicenseType",lic)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetString("prefLicenseUrl","") # TODO - set correct license URL
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetInt("prefLicenseType",lic)
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetString("prefLicenseUrl","") # TODO - set correct license URL
         bimdefault = self.form.settingWorkbench.currentIndex()
         if bimdefault == 1:
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/General").SetString("AutoloadModule","EnVis")
+            App.ParamGet("User parameter:BaseApp/Preferences/General").SetString("AutoloadModule","EnVis")
         elif bimdefault == 2:
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/General").SetString("AutoloadModule","StartWorkbench")
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Start").SetString("AutoloadModule","EnVis")
+            App.ParamGet("User parameter:BaseApp/Preferences/General").SetString("AutoloadModule","StartWorkbench")
+            App.ParamGet("User parameter:BaseApp/Preferences/Mod/Start").SetString("AutoloadModule","EnVis")
         newdoc = self.form.settingNewdocument.isChecked()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("CreateNewDoc",newdoc)
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("CreateNewDoc",newdoc)
         bkp = self.form.settingBackupfiles.value()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetInt("CountBackupFiles",bkp)
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetInt("CountBackupFiles",bkp)
 
         # =====================================================================
         # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("BackgroundColor2",self.form.colorButtonTop.property("color").rgb()<<8)
@@ -194,9 +206,9 @@ class EnVisSetup:
         # =====================================================================
 
         # set the orbit mode to turntable
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetInt("OrbitStyle",0)
+        App.ParamGet("User parameter:BaseApp/Preferences/View").SetInt("OrbitStyle",0)
         # turn thumbnails on
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("SaveThumbnail",True)
+        App.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("SaveThumbnail",True)
 
         # TODO: check if we need to remove them.
         # Without getting the working plane preference above, we cannot
@@ -223,46 +235,51 @@ class EnVisSetup:
         # =====================================================================
 
         # set the status bar widgets
-        mw = FreeCADGui.getMainWindow()
+        mw = Gui.getMainWindow()
         if mw:
             st = mw.statusBar()
-            statuswidget = st.findChild(QtGui.QToolBar,"EnVisStatusWidget")
+            statuswidget = st.findChild(QtGui.QToolBar, "EnVisStatusWidget")
             if statuswidget:
                 statuswidget.unitLabel.setText(statuswidget.unitsList[self.form.settingUnits.currentIndex()])
                 # change the unit of the nudge button
                 nudgeactions = statuswidget.nudge.menu().actions()
-                if unit in [2,3,5,7]:
+                if unit in [2, 3, 5, 7]:
                     nudgelabels = statuswidget.nudgeLabelsI
                 else:
                     nudgelabels = statuswidget.nudgeLabelsM
                 for i in range(len(nudgelabels)):
                     nudgeactions[i].setText(nudgelabels[i])
                 if not "auto" in statuswidget.nudge.text().replace("&","").lower():
-                    statuswidget.nudge.setText(FreeCAD.Units.Quantity(statuswidget.nudge.text().replace("&","")).UserString)
+                    statuswidget.nudge.setText(App.Units.Quantity(statuswidget.nudge.text().replace("&","")).UserString)
 
-    def handleLink(self,link):
-        
-        if hasattr(self,"form"):
+    def handleLink(self, link):
+        if hasattr(self, "form"):
             if "#install" in link:
                 getIfcOpenShell()
             else:
-                #print("Opening link:",link)
-                from PySide import QtCore,QtGui
+                # print("Opening link:",link)
                 url = QtCore.QUrl(link)
                 QtGui.QDesktopServices.openUrl(url)
 
 
+Gui.addCommand('EnVis_Setup', EnVisSetup())
+
+
 def getPrefColor(color):
-    r = ((color>>24)&0xFF)/255.0
-    g = ((color>>16)&0xFF)/255.0
-    b = ((color>>8)&0xFF)/255.0
-    from PySide import QtGui
-    return QtGui.QColor.fromRgbF(r,g,b)
+    r = ((color >> 24) & 0xFF) / 255.0
+    g = ((color >> 16) & 0xFF) / 255.0
+    b = ((color >> 8) & 0xFF) / 255.0
+    return QtGui.QColor.fromRgbF(r, g, b)
+
 
 def getIfcOpenShell(force=False):
-    """downloads and installs IfcOpenShell"""
+    """Download and install IfcOpenShell.
 
+    TODO: this should be moved to the Arch Workbench. It's a more centralized
+    way to handle installing this dependency.
+    """
     ifcok = False
+
     if not force:
         try:
             import ifcopenshell
@@ -273,11 +290,11 @@ def getIfcOpenShell(force=False):
 
     if not ifcok:
         # ifcopenshell not installed
-        import re,json
-        from PySide import QtGui
+        import re, json
         import zipfile
         import addonmanager_utilities
-        if not FreeCAD.GuiUp:
+
+        if not App.GuiUp:
             reply = QtGui.QMessageBox.Yes
         else:
             reply = QtGui.QMessageBox.question(None,
@@ -309,12 +326,12 @@ def getIfcOpenShell(force=False):
                     plat += "64"
                 else:
                     plat += "32"
-                print("Looking for",plat,pyv)
+                print("Looking for", plat, pyv)
                 for link in links:
                     if ("ifcopenshell-"+pyv in link) and (plat in link):
                         print("Downloading "+link+"...")
-                        p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Macro")
-                        fp = p.GetString("MacroPath",os.path.join(FreeCAD.getUserAppDataDir(),"Macros"))
+                        p = App.ParamGet("User parameter:BaseApp/Preferences/Macro")
+                        fp = p.GetString("MacroPath", os.path.join(App.getUserAppDataDir(), "Macros"))
                         u = addonmanager_utilities.urlopen(link)
                         if u:
                             if sys.version_info.major < 3:
@@ -333,7 +350,3 @@ def getIfcOpenShell(force=False):
                             break
                 else:
                     print("Unable to find a build for your version")
-
-if FreeCAD.GuiUp:
-    import FreeCADGui
-    FreeCADGui.addCommand('EnVis_Setup',EnVisSetup())
