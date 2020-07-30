@@ -1,8 +1,12 @@
-import FreeCAD,Draft
 import math
 import BOPTools.SplitAPI as split
-import EnVisHelper
+
+import FreeCAD
+import Draft
 import EnVisOuterSpace
+
+import envis.helpers.helper as EnVisHelper
+
 
 class EnVisBruttoFace:
     def __init__(self, obj):

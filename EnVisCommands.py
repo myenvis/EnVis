@@ -1,6 +1,10 @@
 # TODO: rename to EnVisImport
 
-import FreeCAD,os,EnVisProject,EnVisHelper
+import os
+
+import FreeCAD
+import EnVisProject
+import envis.helpers.helper as helper
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -54,7 +58,7 @@ class _CommandImport:
         for window in filter(lambda o: hasattr(o, "Proxy") and type(o.Proxy) == ArchWindow._Window, doc.Objects):
             ifc_window = ifcfile.by_guid(window.GlobalId)
             ifc_wall = ifc_window.FillsVoids[0].RelatingOpeningElement.VoidsElements[0].RelatingBuildingElement
-            wall = EnVisHelper.get_object_by_guid(doc, ifc_wall.GlobalId)
+            wall = helper.get_object_by_guid(doc, ifc_wall.GlobalId)
             window.Hosts = [wall]
         p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
         EnVisProject.EnVisProject(p)
