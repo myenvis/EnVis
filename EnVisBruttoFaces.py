@@ -381,24 +381,3 @@ def createModel(layer):
     lay.Group = brutto_faces
 
     doc.recompute()
-
-if FreeCAD.GuiUp:
-    import FreeCADGui
-    from PySide import QtGui,QtCore
-
-class _CommandBruttoFl:
-    def GetResources(self):
-        return {
-            'MenuText': QtCore.QT_TRANSLATE_NOOP("EnVis_BruttoFl","Bruttoflächen erzeugen"),
-            'ToolTip': QtCore.QT_TRANSLATE_NOOP("EnVis_BruttoFl","Erzeugt das Flächenmodell aus SpaceBoundaries")}
-
-    def IsActive(self):
-        return FreeCAD.ActiveDocument and hasattr(FreeCAD.ActiveDocument, "EnVisProject")
-
-    def Activated(self):
-        layer = FreeCAD.ActiveDocument.getObjectsByLabel("IfcSpaceBoundaries")[0]
-        createModel(layer)
-
-if FreeCAD.GuiUp:
-    FreeCADGui.addCommand('EnVis_BruttoFl',_CommandBruttoFl())
-
