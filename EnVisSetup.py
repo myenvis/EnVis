@@ -19,11 +19,15 @@
 #*   USA                                                                   *
 #*                                                                         *
 #***************************************************************************
-
 """This module contains a simplified FreeCAD setup"""
 
-import os,sys
+import os
+import sys
 import FreeCAD
+import FreeCAD as App
+
+from draftutils.translate import translate
+
 
 class EnVisSetup:
 
@@ -188,13 +192,13 @@ class EnVisSetup:
         # set the working plane
         if hasattr(FreeCAD,"DraftWorkingPlane") and hasattr(FreeCADGui,"draftToolBar"):
             if wp == 1:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(0,0,1), 0)
+                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(0,0,1), 0)
                 FreeCADGui.draftToolBar.wplabel.setText("Top(XY)")
             elif wp == 2:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(0,1,0), 0)
+                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(0,1,0), 0)
                 FreeCADGui.draftToolBar.wplabel.setText("Front(XZ)")
             elif wp == 3:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(1,0,0), 0)
+                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(1,0,0), 0)
                 FreeCADGui.draftToolBar.wplabel.setText("Side(YZ)")
             else:
                 FreeCADGui.draftToolBar.wplabel.setText("Auto")
