@@ -7,6 +7,7 @@
 import FreeCAD as App
 
 from envis.objects.outerspace import OuterSpace
+from envis.viewproviders.v_outerspace import ViewOuterSpace
 
 
 def add_outer_space(base_obj, doc):
@@ -20,7 +21,7 @@ def add_outer_space(base_obj, doc):
     OuterSpace(obj)
 
     if App.GuiUp:
-        obj.ViewObject.Proxy = 0
+        ViewOuterSpace(obj.ViewObject)
 
     if hasattr(base_obj, "Name"):
         obj.BaseObject = base_obj
