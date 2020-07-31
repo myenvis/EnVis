@@ -3,9 +3,9 @@ import BOPTools.SplitAPI as split
 
 import FreeCAD
 import Draft
-import EnVisOuterSpace
-
+import envis.make.mk_outerspace as mk_outerspace
 import envis.helpers.helper as EnVisHelper
+import envis.objects.outerspace as outerspace
 
 
 class EnVisBruttoFace:
@@ -174,14 +174,14 @@ def createModel(layer):
                         print("Dropping")
                         return None
                     else:  # Bedeckung durch Gelände oÄ
-                        outer_space = EnVisOuterSpace.get_outer_space(o)
+                        outer_space = mk_outerspace.get_outer_space(o)
                         if EnVisHelper.isClose(f.Area, offset_sb.Area):
                             support_objs = []
                             break
                         coverings_partial.insert(0, outer_space)
                         outer_space = None
         if not outer_space:
-            outer_space = EnVisOuterSpace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
+            outer_space = mk_outerspace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
         if project.moveOuterSB:
             obj, faceind = faceFromLinkSub(sb.BaseFace)
             outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
@@ -365,13 +365,13 @@ def createModel(layer):
     # and also setup coverings
     news = []
     for bf in brutto_faces:
-        while bf.Proxy.partial_covers and type(bf.Proxy.partial_covers[0].Proxy) == EnVisOuterSpace.EnVisOuterSpace:
+        while bf.Proxy.partial_covers and type(bf.Proxy.partial_covers[0].Proxy) == outerspace.OuterSpace:
             outer_space = bf.Proxy.partial_covers.pop(0)
             test_shape = EnVisHelper.make_intersection_candidate(outer_space.BaseObject.Shape, bf.Shape, project.intersectionTolerance.Value)
             new_face = bf.Shape.common(test_shape)
             rest_face = bf.Shape.cut(test_shape)
             new = copyBruttoFace(bf)
-            while new.Proxy.partial_covers and type(new.Proxy.partial_covers[0].Proxy) == EnVisOuterSpace.EnVisOuterSpace:
+            while new.Proxy.partial_covers and type(new.Proxy.partial_covers[0].Proxy) == outerspace.OuterSpace:
                 del new.Proxy.partial_covers[0]
             new.Shape = new_face
             new.Space2 = outer_space
@@ -381,7 +381,7 @@ def createModel(layer):
         setup_coverings(bf)
 
     brutto_faces.extend(news)
-    lay = Draft.makeLayer("BruttoFlächen", transparency=80)
+    lay = Draft.make_layer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
 
     doc.recompute()
