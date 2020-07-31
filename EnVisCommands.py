@@ -61,6 +61,11 @@ class _CommandImport:
         p.IFCFile = self.filename
 #        p.Proxy.ifc = ifcfile
 
+        # TODO: review creating the space boundaries objects.
+        # Eliud: I find this confusing because this creates a class
+        # to show something? But this is inside a command that is called
+        # from the press of a button or menu.
+        # Is this supposed to be persistent? What does it do?
         sb = SpaceBoundary.SpaceBoundaries(self.filename)
         sb.show_all()
 

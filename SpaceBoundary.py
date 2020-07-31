@@ -94,6 +94,13 @@ class SpaceBoundaries:
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
         obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
         EnVisIfcSB(obj)
+
+        # Eliud: this `space.Name` is not found if the FreeCAD IFC import
+        # does not create parametric Arch objects.
+        # This needs to be set up in the IFC Import-Export Preferences
+        # "Import arch IFC objects as Parametric Arch objects"
+        # TODO: force setting the parameter on Workbench initialization
+        # and all necessary preferences.
         obj.Space = FreeCAD.ActiveDocument.getObjectsByLabel(space.Name)[0]
         obj.BuildingElement = building_element
 

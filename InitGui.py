@@ -1,10 +1,20 @@
-# main workbench class
+# -----------------------------------------------------------------------------
+#
+# Private license: 2020, EnVis
+#
+# -----------------------------------------------------------------------------
+"""Initialization of EnVis workbench."""
+from PySide.QtCore import QT_TRANSLATE_NOOP
 
-class EnVisWorkbench(Workbench):
+import FreeCAD as App
+import FreeCADGui as Gui
 
+from draftutils.messages import _log
+
+
+class EnVisWorkbench(Gui.Workbench):
 
     def __init__(self):
-
         self.__class__.MenuText = "EnVis"
         self.__class__.ToolTip = "Energy planning workbench"
         self.__class__.Icon = """
@@ -39,15 +49,19 @@ static char * IFC_xpm[] = {
 """
 
     def Initialize(self):
-
         import DraftTools
         import Arch
-        import EnVisCommands,EnVisBruttoFaces,EnVisSetup
+        import EnVisCommands
+        import EnVisBruttoFaces
+        import EnVisSetup
+        from draftutils.messages import _log
+
+        from PySide.QtCore import QT_TRANSLATE_NOOP
+
         try:
             Gui.activateWorkbench("BIMWorkbench")
         except KeyError:
             print("BIM Workbench not available. Some commands will be missing.")
-
 
         self.draftingtools = ["BIM_Sketch","Draft_Line","Draft_Wire","Draft_Circle",
                               "Draft_Arc","Draft_Arc_3Points","Draft_Ellipse",
@@ -79,24 +93,18 @@ static char * IFC_xpm[] = {
                        "BIM_IfcQuantities","BIM_IfcProperties","BIM_Classification",
                        "BIM_Material","Arch_Schedule","BIM_Preflight","BIM_Layers"]
 
-        if "Draft_WorkingPlaneProxy" in Gui.listCommands():
-            _tool = "Draft_WorkingPlaneProxy"
-        else:
-            _tool = "Draft_SetWorkingPlaneProxy"
-
         self.utils = ["BIM_TogglePanels","BIM_Trash","BIM_WPView",
-                      "Draft_Slope", _tool, "Draft_AddConstruction",
+                      "Draft_Slope", "Draft_WorkingPlaneProxy", "Draft_AddConstruction",
                       "Arch_SplitMesh","Arch_MeshToShape",
                       "Arch_SelectNonSolidMeshes","Arch_RemoveShape",
                       "Arch_CloseHoles","Arch_MergeWalls","Arch_Check",
                       "Arch_ToggleIfcBrepFlag",
                       "Arch_ToggleSubs","Arch_Survey","BIM_Diff","BIM_IfcExplorer"]
 
-        self.envis = ["EnVis_Import","EnVis_BruttoFl","EnVis_Setup","EnVis_SelectRelated"]
-
+        self.envis = ["EnVis_Import", "EnVis_BruttoFl",
+                      "EnVis_Setup", "EnVis_SelectRelated"]
 
         # post-0.18 tools
-
         if "Arch_Project" in Gui.listCommands():
             self.bimtools.insert(0,"Arch_Project")
         if "Arch_Reference" in Gui.listCommands():
@@ -109,7 +117,6 @@ static char * IFC_xpm[] = {
             self.bimtools.insert(self.bimtools.index("Arch_Wall")+1,"Arch_CurtainWall")
 
         # try to load bimbots
-
         try:
             import bimbots
         except ImportError:
@@ -120,11 +127,10 @@ static char * IFC_xpm[] = {
                     return bimbots.get_plugin_info()
                 def Activated(self):
                     bimbots.launch_ui()
-            FreeCADGui.addCommand('BIMBots', BIMBots())
+            Gui.addCommand('BIMBots', BIMBots())
             self.utils.append("BIMBots")
 
         # load Reporting
-
         try:
             import report
         except ImportError:
@@ -134,7 +140,6 @@ static char * IFC_xpm[] = {
                 self.manage[self.manage.index("Arch_Schedule")] = "Report_Create"
 
         # load webtools
-
         try:
             import BIMServer, Git, Sketchfab
         except ImportError:
@@ -142,19 +147,13 @@ static char * IFC_xpm[] = {
         else:
             self.utils.extend(["WebTools_Git","WebTools_BimServer","WebTools_Sketchfab"])
 
-        def QT_TRANSLATE_NOOP(scope, text):
-            return text
-
         # create toolbars
-
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Drafting tools"),self.draftingtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","3D/BIM tools"),self.bimtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Annotation tools"),self.annotationtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Modification tools"),self.modify)
 
         # create menus
-
-
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&2D Drafting"),self.draftingtools)
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&3D/BIM"),self.bimtools)
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&Annotation"),self.annotationtools)
@@ -164,79 +163,75 @@ static char * IFC_xpm[] = {
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&Utils"),self.utils)
         self.appendMenu("EnVis", self.envis)
 
-
         # load Arch & Draft preference pages
-        if hasattr(FreeCADGui,"draftToolBar"):
-            if not hasattr(FreeCADGui.draftToolBar,"loadedArchPreferences"):
+        if hasattr(Gui, "draftToolBar"):
+            if not hasattr(Gui.draftToolBar, "loadedArchPreferences"):
                 import Arch_rc
-                FreeCADGui.addPreferencePage(":/ui/preferences-arch.ui","Arch")
-                FreeCADGui.addPreferencePage(":/ui/preferences-archdefaults.ui","Arch")
-                FreeCADGui.draftToolBar.loadedArchPreferences = True
-            if not hasattr(FreeCADGui.draftToolBar,"loadedPreferences"):
-                import Draft_rc
-                FreeCADGui.addPreferencePage(":/ui/preferences-draft.ui","Draft")
-                FreeCADGui.addPreferencePage(":/ui/preferences-draftsnap.ui","Draft")
-                FreeCADGui.addPreferencePage(":/ui/preferences-draftvisual.ui","Draft")
-                FreeCADGui.addPreferencePage(":/ui/preferences-drafttexts.ui","Draft")
-                FreeCADGui.draftToolBar.loadedPreferences = True
+                Gui.addPreferencePage(":/ui/preferences-arch.ui", "Arch")
+                Gui.addPreferencePage(":/ui/preferences-archdefaults.ui", "Arch")
+                Gui.draftToolBar.loadedArchPreferences = True
 
-        Log ('Loading EnVis module... done\n')
-        FreeCADGui.updateLocale()
+            if not hasattr(Gui.draftToolBar, "loadedPreferences"):
+                import Draft_rc
+                Gui.addPreferencePage(":/ui/preferences-draft.ui", "Draft")
+                Gui.addPreferencePage(":/ui/preferences-draftsnap.ui", "Draft")
+                Gui.addPreferencePage(":/ui/preferences-draftvisual.ui", "Draft")
+                Gui.addPreferencePage(":/ui/preferences-drafttexts.ui", "Draft")
+                Gui.draftToolBar.loadedPreferences = True
+
+        _log('Loading EnVis module... done')
+        Gui.updateLocale()
 
     def Activated(self):
+        from draftutils.messages import _log
 
-        if hasattr(FreeCADGui,"draftToolBar"):
-            FreeCADGui.draftToolBar.Activated()
-        if hasattr(FreeCADGui,"Snapper"):
-            FreeCADGui.Snapper.show()
+        if hasattr(Gui,"draftToolBar"):
+            Gui.draftToolBar.Activated()
+        if hasattr(Gui,"Snapper"):
+            Gui.Snapper.show()
 
         class EnVisWatcher:
-
-            def __init__(self,cmds,name,invert=False):
-
+            def __init__(self, cmds, name, invert=False):
                 self.commands = cmds
                 self.title = name
                 self.invert = invert
 
             def shouldShow(self):
-
                 if self.invert:
-                    return (FreeCAD.ActiveDocument != None) and (FreeCADGui.Selection.getSelection() != [])
+                    return (App.ActiveDocument is not None) and (Gui.Selection.getSelection() != [])
                 else:
-                    return (FreeCAD.ActiveDocument != None) and (not FreeCADGui.Selection.getSelection())
+                    return (App.ActiveDocument is not None) and (not Gui.Selection.getSelection())
 
-        FreeCADGui.Control.addTaskWatcher([EnVisWatcher(self.draftingtools+self.annotationtools,"2D geometry"),
-                                           EnVisWatcher(self.bimtools,"3D/BIM geometry"),
-                                           EnVisWatcher(self.modify,"Modify",invert=True)])
+        Gui.Control.addTaskWatcher([EnVisWatcher(self.draftingtools + self.annotationtools, "2D geometry"),
+                                    EnVisWatcher(self.bimtools, "3D/BIM geometry"),
+                                    EnVisWatcher(self.modify, "Modify", invert=True)])
 
-        Log("EnVis workbench activated\n")
-
+        _log("EnVis workbench activated")
 
     def Deactivated(self):
+        from draftutils.messages import _log
 
-        if hasattr(FreeCADGui,"draftToolBar"):
-            FreeCADGui.draftToolBar.Deactivated()
-        if hasattr(FreeCADGui,"Snapper"):
-            FreeCADGui.Snapper.hide()
+        if hasattr(Gui, "draftToolBar"):
+            Gui.draftToolBar.Deactivated()
+        if hasattr(Gui, "Snapper"):
+            Gui.Snapper.hide()
 
-        FreeCADGui.Control.clearTaskWatcher()
-
-        Log("EnVis workbench deactivated\n")
-
+        Gui.Control.clearTaskWatcher()
+        _log("EnVis workbench deactivated")
 
     def ContextMenu(self, recipient):
-
         import DraftTools
-        if (recipient == "Tree"):
+        if recipient == "Tree":
             groups = False
             ungroupable = False
-            for o in FreeCADGui.Selection.getSelection():
+            for o in Gui.Selection.getSelection():
                 if o.isDerivedFrom("App::DocumentObjectGroup") or o.hasExtension("App::GroupExtension"):
                     groups = True
                 else:
                     groups = False
                     break
-            for o in FreeCADGui.Selection.getSelection():
+
+            for o in Gui.Selection.getSelection():
                 for parent in o.InList:
                     if parent.isDerivedFrom("App::DocumentObjectGroup") or parent.hasExtension("App::GroupExtension"):
                         if o in parent.Group:
@@ -245,26 +240,23 @@ static char * IFC_xpm[] = {
                             ungroupable = False
                             break
             if groups:
-                self.appendContextMenu("",["Draft_SelectGroup"])
-        elif (recipient == "View"):
-            self.appendContextMenu("Snapping",self.snap)
-        if FreeCADGui.Selection.getSelection():
-            self.appendContextMenu("",["Draft_AddConstruction"])
+                self.appendContextMenu("", ["Draft_SelectGroup"])
+
+        elif recipient == "View":
+            self.appendContextMenu("Snapping", self.snap)
+
+        if Gui.Selection.getSelection():
+            self.appendContextMenu("", ["Draft_AddConstruction"])
             allclones = False
-            for obj in FreeCADGui.Selection.getSelection():
+            for obj in Gui.Selection.getSelection():
                 if hasattr(obj,"CloneOf") and obj.CloneOf:
                     allclones = True
                 else:
                     allclones = False
                     break
 
-
     def GetClassName(self):
         return "Gui::PythonWorkbench"
 
 
-FreeCADGui.addWorkbench(EnVisWorkbench)
-
-
-
-
+Gui.addWorkbench(EnVisWorkbench)

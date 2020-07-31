@@ -19,11 +19,15 @@
 #*   USA                                                                   *
 #*                                                                         *
 #***************************************************************************
-
 """This module contains a simplified FreeCAD setup"""
 
-import os,sys
+import os
+import sys
 import FreeCAD
+import FreeCAD as App
+
+from draftutils.translate import translate
+
 
 class EnVisSetup:
 
@@ -128,30 +132,37 @@ class EnVisSetup:
         decimals = self.form.settingDecimals.value()
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Units").SetInt("Decimals",decimals)
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetBool("UseGlobalDecimals",True)
-        squares = self.form.settingSquares.value()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("gridEvery",squares)
-        wp = self.form.settingWP.currentIndex()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("defaultWP",wp)
-        tsize = self.form.settingText.text()
-        tsize = FreeCAD.Units.Quantity(tsize).Value
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetFloat("textheight",tsize)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetFloat("FontSize",tsize) # TODO - check if this needs a mult factor?
-        font = self.form.settingFont.currentFont().family()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetString("textfont",font)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Labels").SetString("LabelFont",font)
-        linewidth = self.form.settingLinewidth.value()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetInt("DefautShapeLineWidth",linewidth)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("linewidth",linewidth)
+
+        # TODO: check if we truly need to remove these options.
+        # They were copied from the BIM code, but they were removed from
+        # our .ui interface file, so calling them would cause errors.
+        # =====================================================================
+        # squares = self.form.settingSquares.value()
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("gridEvery",squares)
+        # wp = self.form.settingWP.currentIndex()
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("defaultWP",wp)
+        # tsize = self.form.settingText.text()
+        # tsize = FreeCAD.Units.Quantity(tsize).Value
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetFloat("textheight",tsize)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetFloat("FontSize",tsize) # TODO - check if this needs a mult factor?
+        # font = self.form.settingFont.currentFont().family()
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetString("textfont",font)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Labels").SetString("LabelFont",font)
+        # linewidth = self.form.settingLinewidth.value()
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetInt("DefautShapeLineWidth",linewidth)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("linewidth",linewidth)
         # TODO - TechDraw default line styles
-        dimstyle = self.form.settingDimstyle.currentIndex()
-        ddimstyle = [0,2,3,4][dimstyle] # less choices in our simplified dialog
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("dimsymbol",ddimstyle)
-        tdimstyle = [3,0,2,2][dimstyle] # TechDraw has different order than Draft
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetInt("dimsymbol",tdimstyle)
-        asize = self.form.settingArrowsize.text()
-        asize = FreeCAD.Units.Quantity(asize).Value
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetFloat("arrowsize",asize)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetFloat("ArrowSize",asize*TECHDRAWDIMFACTOR)
+        # dimstyle = self.form.settingDimstyle.currentIndex()
+        # ddimstyle = [0,2,3,4][dimstyle] # less choices in our simplified dialog
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("dimsymbol",ddimstyle)
+        # tdimstyle = [3,0,2,2][dimstyle] # TechDraw has different order than Draft
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetInt("dimsymbol",tdimstyle)
+        # asize = self.form.settingArrowsize.text()
+        # asize = FreeCAD.Units.Quantity(asize).Value
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetFloat("arrowsize",asize)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/TechDraw/Dimensions").SetFloat("ArrowSize",asize*TECHDRAWDIMFACTOR)
+        # =====================================================================
+
         author = self.form.settingAuthor.text()
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetString("prefAuthor",author)
         lic = self.form.settingLicense.currentIndex()
@@ -168,41 +179,48 @@ class EnVisSetup:
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("CreateNewDoc",newdoc)
         bkp = self.form.settingBackupfiles.value()
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetInt("CountBackupFiles",bkp)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("BackgroundColor2",self.form.colorButtonTop.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("BackgroundColor3",self.form.colorButtonBottom.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("DefaultShapeColor",self.form.colorButtonFaces.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetUnsigned("color",self.form.colorButtonFaces.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("DefaultShapeLineColor",self.form.colorButtonLines.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Arch").SetUnsigned("ColorHelpers",self.form.colorButtonHelpers.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetUnsigned("constructioncolor",self.form.colorButtonConstruction.property("color").rgb()<<8)
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("ConstructionColor",self.form.colorButtonConstruction.property("color").rgb()<<8)
-        height = self.form.settingCameraHeight.value()
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("defaultCameraHeight",height)
 
+        # =====================================================================
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("BackgroundColor2",self.form.colorButtonTop.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("BackgroundColor3",self.form.colorButtonBottom.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("DefaultShapeColor",self.form.colorButtonFaces.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetUnsigned("color",self.form.colorButtonFaces.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("DefaultShapeLineColor",self.form.colorButtonLines.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Arch").SetUnsigned("ColorHelpers",self.form.colorButtonHelpers.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetUnsigned("constructioncolor",self.form.colorButtonConstruction.property("color").rgb()<<8)
+        # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetUnsigned("ConstructionColor",self.form.colorButtonConstruction.property("color").rgb()<<8)
+        # height = self.form.settingCameraHeight.value()
+        #FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Draft").SetInt("defaultCameraHeight",height)
+        # =====================================================================
 
         # set the orbit mode to turntable
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/View").SetInt("OrbitStyle",0)
         # turn thumbnails on
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("SaveThumbnail",True)
 
+        # TODO: check if we need to remove them.
+        # Without getting the working plane preference above, we cannot
+        # use this code to set up the working plane
+        # =====================================================================
         # set the working plane
-        if hasattr(FreeCAD,"DraftWorkingPlane") and hasattr(FreeCADGui,"draftToolBar"):
-            if wp == 1:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(0,0,1), 0)
-                FreeCADGui.draftToolBar.wplabel.setText("Top(XY)")
-            elif wp == 2:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(0,1,0), 0)
-                FreeCADGui.draftToolBar.wplabel.setText("Front(XZ)")
-            elif wp == 3:
-                FreeCAD.DraftWorkingPlane.alignToPointAndAxis(Vector(0,0,0), Vector(1,0,0), 0)
-                FreeCADGui.draftToolBar.wplabel.setText("Side(YZ)")
-            else:
-                FreeCADGui.draftToolBar.wplabel.setText("Auto")
+        # if hasattr(FreeCAD,"DraftWorkingPlane") and hasattr(FreeCADGui,"draftToolBar"):
+        #     if wp == 1:
+        #         FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(0,0,1), 0)
+        #         FreeCADGui.draftToolBar.wplabel.setText("Top(XY)")
+        #     elif wp == 2:
+        #         FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(0,1,0), 0)
+        #         FreeCADGui.draftToolBar.wplabel.setText("Front(XZ)")
+        #     elif wp == 3:
+        #         FreeCAD.DraftWorkingPlane.alignToPointAndAxis(App.Vector(0,0,0), App.Vector(1,0,0), 0)
+        #         FreeCADGui.draftToolBar.wplabel.setText("Side(YZ)")
+        #     else:
+        #         FreeCADGui.draftToolBar.wplabel.setText("Auto")
 
         # set Draft toolbar
-        if hasattr(FreeCADGui,"draftToolBar"):
-            FreeCADGui.draftToolBar.widthButton.setValue(linewidth)
-            FreeCADGui.draftToolBar.fontsizeButton.setValue(tsize)
+        # if hasattr(FreeCADGui,"draftToolBar"):
+        #     FreeCADGui.draftToolBar.widthButton.setValue(linewidth)
+        #     FreeCADGui.draftToolBar.fontsizeButton.setValue(tsize)
+        # =====================================================================
 
         # set the status bar widgets
         mw = FreeCADGui.getMainWindow()
