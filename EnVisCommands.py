@@ -3,8 +3,8 @@
 import os
 
 import FreeCAD
-import envis.objects.project as project
 import envis.helpers.helper as helper
+import envis.make.mk_project as mk_project
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -60,10 +60,8 @@ class _CommandImport:
             ifc_wall = ifc_window.FillsVoids[0].RelatingOpeningElement.VoidsElements[0].RelatingBuildingElement
             wall = helper.get_object_by_guid(doc, ifc_wall.GlobalId)
             window.Hosts = [wall]
-        p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
-        project.Project(p)
-        p.IFCFile = self.filename
-#        p.Proxy.ifc = ifcfile
+
+        p = mk_project.make_project(self.filename)
 
         # TODO: review creating the space boundaries objects.
         # Eliud: I find this confusing because this creates a class
