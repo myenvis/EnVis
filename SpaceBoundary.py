@@ -8,6 +8,9 @@ import Draft
 import importIFCHelper
 import ifcopenshell
 
+from envis.objects.spaceboundary import SpaceBoundary
+from envis.viewproviders.v_spaceboundary import ViewSpaceBoundary
+
 
 def getObject(doc, ent):
     """ get object by IFC global ID """
@@ -21,26 +24,6 @@ def getObject(doc, ent):
             return o
 
     return None
-
-class EnVisIfcSB: # TODO: rename to EnVisIFCSpaceBoundary
-    def __init__(self, obj):
-        obj.addProperty('App::PropertyLink', 'Space', 'IfcData', 'Zugehörges Raumobjekt')
-        obj.addProperty('App::PropertyLink', 'BuildingElement', 'IfcData', 'Zugehörger Bauteil')
-        obj.addProperty('App::PropertyBool', 'Internal', 'IfcData', 'Ein anderer Raum liegt gegenüber')
-        obj.addProperty('App::PropertyLinkSub', 'BaseFace', 'DerivedData', 'Die begrenzende Fläche des Bauteils')
-        obj.Proxy = self
-        obj.ViewObject.Proxy = 0
-
-    def execute(self, obj):
-        if obj.BuildingElement:
-            faces = obj.BuildingElement.Shape.Faces
-            i = 1
-            while faces:
-                f = faces.pop(0)
-                if obj.Shape.isCoplanar(f):
-                    obj.BaseFace = [obj.BuildingElement, "Face"+str(i)]
-                    break
-                i += 1
 
 
 class SpaceBoundaries:
@@ -61,7 +44,7 @@ class SpaceBoundaries:
         if lay:
             self.lay = lay[0]
         else:
-            self.lay = Draft.makeLayer("IfcSpaceBoundaries", transparency=80)
+            self.lay = Draft.make_layer("IfcSpaceBoundaries", transparency=80)
             self.lay.ViewObject.OverrideShapeColorChildren = False
 
         self.sbrels = self.ifcfile.by_type('IfcRelSpaceBoundary')
@@ -93,7 +76,10 @@ class SpaceBoundaries:
         shape.scale(1000.0) # m <-> mm
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
         obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
-        EnVisIfcSB(obj)
+        SpaceBoundary(obj)
+
+        if FreeCAD.GuiUp:
+            ViewSpaceBoundary(obj.ViewObject)
 
         # Eliud: this `space.Name` is not found if the FreeCAD IFC import
         # does not create parametric Arch objects.
@@ -109,6 +95,7 @@ class SpaceBoundaries:
         else:
             print("SpaceBoundary has not exactly one face: ", sbrel)
             obj.Shape = shape
+
         obj.Internal = sbrel.InternalOrExternalBoundary == 'INTERNAL'
         if obj.Internal:
             obj.ViewObject.ShapeColor = (1.0, green, 0.0)
