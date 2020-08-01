@@ -3,7 +3,7 @@
 import os
 
 import FreeCAD
-import EnVisProject
+import envis.objects.project as project
 import envis.helpers.helper as helper
 
 if FreeCAD.GuiUp:
@@ -61,7 +61,7 @@ class _CommandImport:
             wall = helper.get_object_by_guid(doc, ifc_wall.GlobalId)
             window.Hosts = [wall]
         p = FreeCAD.ActiveDocument.addObject("App::FeaturePython","EnVisProject")
-        EnVisProject.EnVisProject(p)
+        project.Project(p)
         p.IFCFile = self.filename
 #        p.Proxy.ifc = ifcfile
 
