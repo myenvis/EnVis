@@ -17,46 +17,18 @@ class EnVisWorkbench(Gui.Workbench):
     def __init__(self):
         self.__class__.MenuText = "EnVis"
         self.__class__.ToolTip = "Energy planning workbench"
-        self.__class__.Icon = """
-/* XPM */
-static char * IFC_xpm[] = {
-"16 16 9 1",
-" 	c None",
-".	c #D80742",
-"+	c #C20B5E",
-"@	c #B11A71",
-"#	c #0E4A94",
-"$	c #A12288",
-"%	c #61398E",
-"&	c #983563",
-"*	c #1E8BA6",
-"                ",
-"     #   ..     ",
-"    ### ....    ",
-"   ## ##+  ..   ",
-"  ##  .##   ..  ",
-" ##  +. ##   .. ",
-" ## $$$+##**..  ",
-"  #%$$$%#**&.   ",
-"  $$% ##*+..&*  ",
-" $$$###*@..  ** ",
-" $$  #**$@@  ** ",
-"  $$  **%$  **  ",
-"   $$  **  **   ",
-"    $$$$****    ",
-"     $$  **     ",
-"                "};
-"""
+        self.__class__.Icon = ":/icons/IFC.svg"
 
     def Initialize(self):
+        from PySide.QtCore import QT_TRANSLATE_NOOP
+
         import DraftTools
         import Arch
+        import envis.commands
         import EnVisCommands
         import EnVisBruttoFaces
-        import EnVisSetup
-        from draftutils.messages import _log
 
-        from PySide.QtCore import QT_TRANSLATE_NOOP
+        from draftutils.messages import _log
 
         try:
             Gui.activateWorkbench("BIMWorkbench")
@@ -152,6 +124,7 @@ static char * IFC_xpm[] = {
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","3D/BIM tools"),self.bimtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Annotation tools"),self.annotationtools)
         self.appendToolbar(QT_TRANSLATE_NOOP("BIM","Modification tools"),self.modify)
+        self.appendToolbar("EnVis tools", self.envis)
 
         # create menus
         self.appendMenu(QT_TRANSLATE_NOOP("BIM","&2D Drafting"),self.draftingtools)
