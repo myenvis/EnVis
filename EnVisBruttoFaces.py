@@ -6,53 +6,20 @@ import Draft
 import envis.make.mk_outerspace as mk_outerspace
 import envis.helpers.helper as EnVisHelper
 import envis.objects.outerspace as outerspace
+import envis.make.mk_bruttoface as mk_bruttoface
 
-
-class EnVisBruttoFace:
-    def __init__(self, obj):
-        self.full_covers = []  # Objects related to this face
-        self.partial_covers = []
-        obj.addProperty('App::PropertyLinkSub', 'BaseFace', 'Envis', '')
-        obj.addProperty('App::PropertyLink', 'Space', 'Envis', '')
-        obj.addProperty("App::PropertyLinkList",'CoversSpace', 'Envis', 'Bekleidungen auf der Raumseite')
-        obj.addProperty('App::PropertyLink', 'Space2', 'Envis', '')
-        obj.addProperty("App::PropertyLinkList",'CoversSpace2', 'Envis', 'Bekleidungen auf der Außenseite bzw. Raum2')
-        obj.addProperty('App::PropertyLink', 'SpaceBoundary', 'Envis', '')
-        obj.Proxy = self
-        if obj.ViewObject:
-            obj.ViewObject.Proxy = 0
-
-#    def execute(self, obj):
-#        parent, face = faceFromLinkSub(obj.BaseFace)
-#        obj.Shape = parent.Shape.Faces[face]
-#        obj.Shape.Placement = parent.Shape.Placement
-
-def makeBruttoFace(space_boundary, other_space, BaseFace=None, doc=None):
-    if not doc:
-        doc = FreeCAD.ActiveDocument
-
-    obj = doc.addObject("Part::FeaturePython", "BruttoFace" + space_boundary.Name)
-    EnVisBruttoFace(obj)
-    obj.Space = space_boundary.Space
-    obj.Space2 = other_space
-    obj.SpaceBoundary = space_boundary
-    if BaseFace:
-        obj.BaseFace = BaseFace
-    else:
-        obj.BaseFace = space_boundary.BaseFace
-    parent, face = faceFromLinkSub(obj.BaseFace)
-    obj.Shape = parent.Shape.Faces[face]
-    obj.Placement = parent.Shape.Faces[face].Placement
-#    obj.Placement.multiply(parent.Placement)
-
-    return obj
 
 def copyBruttoFace(orig):
-    obj = makeBruttoFace(orig.SpaceBoundary, orig.Space2, BaseFace=orig.BaseFace, doc=orig.Document)
+    obj = mk_bruttoface.make_bruttoface(orig.SpaceBoundary, orig.Space2,
+                                        BaseFace=orig.BaseFace,
+                                        doc=orig.Document)
+    # TODO: check where to store this information.
+    # Normally this should be saved in properties.
     obj.Proxy.full_covers = orig.Proxy.full_covers.copy()
     obj.Proxy.partial_covers = orig.Proxy.partial_covers.copy()
 
     return obj
+
 
 def setup_coverings(bf):
     """Check for full/partial covers"""
@@ -108,9 +75,6 @@ def pop_pair(sbs):
     
     return sb, other
 
-def faceFromLinkSub(prop):
-    """returns tuple id, faceidx"""
-    return prop[0], int(prop[1][0][4:])-1 # string "faceX"
 
 def linkSubFromFace(obj, faceind):
     return (obj, ["Face" + str(faceind + 1)])
@@ -141,7 +105,7 @@ def createModel(layer):
         """Return a BruttoFace for SpaceBoundary or None, if it shoule be dropped
 
         The BruttoFace is linked to the proper Außenraum"""
-        support_objs = [faceFromLinkSub(sb.BaseFace)]
+        support_objs = [mk_bruttoface.faceFromLinkSub(sb.BaseFace)]
         coverings_full = []
         coverings_partial = []
         outer_space = None
@@ -183,11 +147,12 @@ def createModel(layer):
         if not outer_space:
             outer_space = mk_outerspace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
         if project.MoveOuterSB:
-            obj, faceind = faceFromLinkSub(sb.BaseFace)
+            obj, faceind = mk_bruttoface.faceFromLinkSub(sb.BaseFace)
             outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
-            bf = makeBruttoFace(sb, outer_space, BaseFace=linkSubFromFace(obj, outer_face_ind))
+            bf = mk_bruttoface.make_bruttoface(sb, outer_space,
+                                               BaseFace=linkSubFromFace(obj, outer_face_ind))
         else:
-            bf = makeBruttoFace(sb, outer_space)
+            bf = mk_bruttoface.make_bruttoface(sb, outer_space)
         bf.CoversSpace2 = coverings_partial + coverings_full
         bf.Proxy.partial_covers = coverings_partial
         bf.Proxy.full_covers = coverings_full
@@ -205,9 +170,9 @@ def createModel(layer):
             while internal:
                 a,b = pop_pair(internal)
                 if a.Shape.BoundBox.ZMax > b.Shape.BoundBox.ZMax:  # Obere Fläche als Grenze, weil darüber ist Trittschalldämmung
-                    obj = makeBruttoFace(a, b.Space)
+                    obj = mk_bruttoface.make_bruttoface(a, b.Space)
                 else:
-                    obj = makeBruttoFace(b, a.Space)
+                    obj = mk_bruttoface.make_bruttoface(b, a.Space)
                 brutto_faces.append(obj)
                 slabs.append((obj.Shape.BoundBox.ZMax, obj))
             for sb in external:
@@ -238,7 +203,7 @@ def createModel(layer):
             # TODO Ev Orientierung der Wand beachten
             d = b.Shape.CenterOfMass - a.Shape.CenterOfMass
             d.multiply(0.5)
-            obj = makeBruttoFace(a, b.Space)
+            obj = mk_bruttoface.make_bruttoface(a, b.Space)
             obj.Placement.move(d)
 
             shape = obj.Shape
@@ -285,7 +250,7 @@ def createModel(layer):
             other = partner.Space
         else:
             other = None  # TODO: Außenraum
-        obj = makeBruttoFace(sb, other)
+        obj = mk_bruttoface.make_bruttoface(sb, other)
         obj.Shape = sb.Shape
         obj.Placement = sb.Placement
         brutto_faces.append(obj)
@@ -312,7 +277,7 @@ def createModel(layer):
                     if sb.Shape.Area > bfs[i].SpaceBoundary.Shape.Area - 100:  # mm^2
                         bfs[i].Proxy.full_covers.append(sb.BuildingElement)
                     else:
-                        fs[i].Proxy.partial_covers.append(sb.BuildingElement)
+                        bfs[i].Proxy.partial_covers.append(sb.BuildingElement)
         elif sbs[0].BuildingElement.IfcType == "Building Element Proxy":
             print("Found 'IfcBuildingElementProxy': Please fix your IFC file")
         else:

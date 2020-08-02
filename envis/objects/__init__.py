@@ -2,3 +2,4 @@
 from .project import Project
 from .spaceboundary import SpaceBoundary
 from .outerspace import OuterSpace
+from .bruttoface import BruttoFace
