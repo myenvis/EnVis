@@ -7,9 +7,7 @@ import Part
 import Draft
 import importIFCHelper
 import ifcopenshell
-
-from envis.objects.spaceboundary import SpaceBoundary
-from envis.viewproviders.v_spaceboundary import ViewSpaceBoundary
+import envis.make.mk_spaceboundary as mk_space
 
 
 def getObject(doc, ent):
@@ -51,20 +49,24 @@ class SpaceBoundaries:
 
     def show(self, sbrel):
         """ erzeugt FreeCAD Objekt von ifcopenshell object sbrel """
-        def name(e):
+        doc = FreeCAD.activeDocument()
+
+        def _name(e):
             if e.Name:
                 return e.Name
             else:
                 return str(e.id())
+
         space = sbrel.RelatingSpace
         surface = sbrel.ConnectionGeometry.SurfaceOnRelatingElement
-        building_element = getObject(FreeCAD.ActiveDocument, sbrel.RelatedBuildingElement)
+        building_element = getObject(doc, sbrel.RelatedBuildingElement)
         if building_element:
-            name = 'Raum' + name(space) + '_zu_' + building_element.Label + '_' + str(sbrel.id())
+            name = 'Raum' + _name(space) + '_zu_' + building_element.Label + '_' + str(sbrel.id())
         else:
-            name = 'Raum' + name(space) + '_' + str(sbrel.id())
+            name = 'Raum' + _name(space) + '_' + str(sbrel.id())
             print("SpaceBoundary without building element: ", sbrel)
             building_element = Arch.makeComponent(None, name="BrokenSpaceBoundary")
+
         if sbrel.PhysicalOrVirtualBoundary == 'PHYSICAL':
             green = 0.0
         else:
@@ -75,34 +77,22 @@ class SpaceBoundaries:
         shape.importBrepFromString(cr.brep_data)
         shape.scale(1000.0) # m <-> mm
         shape.Placement = importIFCHelper.getPlacement(space.ObjectPlacement)
-        obj = FreeCAD.ActiveDocument.addObject("Part::FeaturePython",name)
-        SpaceBoundary(obj)
 
-        if FreeCAD.GuiUp:
-            ViewSpaceBoundary(obj.ViewObject)
-
-        # Eliud: this `space.Name` is not found if the FreeCAD IFC import
+        # TODO: check that this make_spaceboundary works as intended.
+        #
+        # The value `space.Name` is not found if the FreeCAD IFC import
         # does not create parametric Arch objects.
         # This needs to be set up in the IFC Import-Export Preferences
         # "Import arch IFC objects as Parametric Arch objects"
+        #
         # TODO: force setting the parameter on Workbench initialization
         # and all necessary preferences.
-        obj.Space = FreeCAD.ActiveDocument.getObjectsByLabel(space.Name)[0]
-        obj.BuildingElement = building_element
-
-        if len(shape.Faces) == 1:
-            obj.Shape = shape.Faces[0]
-        else:
-            print("SpaceBoundary has not exactly one face: ", sbrel)
-            obj.Shape = shape
-
-        obj.Internal = sbrel.InternalOrExternalBoundary == 'INTERNAL'
-        if obj.Internal:
-            obj.ViewObject.ShapeColor = (1.0, green, 0.0)
-        else:
-            obj.ViewObject.ShapeColor = (0.0, green, 1.0)
-
-        return obj
+        new_obj = mk_space.make_spaceboundary(name,
+                                              doc.getObjectsByLabel(space.Name)[0],
+                                              building_element,
+                                              shape,
+                                              sbrel)
+        return new_obj
 
     def show_all(self):
         lay_grp = [self.show(s) for s in self.sbrels]
