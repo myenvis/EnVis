@@ -30,9 +30,10 @@ class BruttoFlache:
 
     def Activated(self):
         layer = App.ActiveDocument.getObjectsByLabel("IfcSpaceBoundaries")[0]
-        Gui.addModule("EnVisBruttoFaces")
+        Gui.addModule("envis.functions.bruttofacemodel")
+        Gui.doCommand("bruttofacemodel = envis.functions.bruttofacemodel")
         Gui.doCommand("_layer_ = App.ActiveDocument." + layer.Name)
-        Gui.doCommand("EnVisBruttoFaces.createModel(_layer_)")
+        Gui.doCommand("bruttofacemodel.createModel(_layer_)")
 
 
 Gui.addCommand('EnVis_BruttoFl', BruttoFlache())
