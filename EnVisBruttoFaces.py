@@ -1,8 +1,12 @@
-import FreeCAD,Draft
 import math
 import BOPTools.SplitAPI as split
-import EnVisHelper
-import EnVisOuterSpace
+
+import FreeCAD
+import Draft
+import envis.make.mk_outerspace as mk_outerspace
+import envis.helpers.helper as EnVisHelper
+import envis.objects.outerspace as outerspace
+
 
 class EnVisBruttoFace:
     def __init__(self, obj):
@@ -123,7 +127,7 @@ def createModel(layer):
 
     byBE = EnVisHelper.mapProperty(boundaries, lambda sb: sb.BuildingElement.Name)
     doc = FreeCAD.ActiveDocument
-    project = doc.EnVisProject
+    project = doc.getObject("EnVisProject")
 
     building_objs = list(filter(lambda o: "isBuildingObj(o)" and hasattr(o, "IfcType") and hasattr(o, "Shape") and o.Shape.Solids, doc.Objects))  # TODO
 
@@ -146,11 +150,11 @@ def createModel(layer):
             outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
             outer_face = obj.Shape.Faces[outer_face_ind]
             d = EnVisHelper.get_distance_vector(sb.Shape, outer_face)
-            offset = d.add(outer_face.normalAt(0,0).multiply(project.intersectionTolerance))
+            offset = d.add(outer_face.normalAt(0,0).multiply(project.IntersectionTolerance))
             offset_sb = sb.Shape.copy()
             offset_sb.translate(offset)
             bbox = offset_sb.BoundBox
-            bbox.enlarge(project.intersectionTolerance)
+            bbox.enlarge(project.IntersectionTolerance)
             candidates = list(filter(lambda o: o != obj and bbox.intersect(o.Shape.BoundBox), building_objs))
             print("Found", len(candidates), "intersection candidates")
             for o in candidates:
@@ -170,15 +174,15 @@ def createModel(layer):
                         print("Dropping")
                         return None
                     else:  # Bedeckung durch Gelände oÄ
-                        outer_space = EnVisOuterSpace.get_outer_space(o)
+                        outer_space = mk_outerspace.get_outer_space(o)
                         if EnVisHelper.isClose(f.Area, offset_sb.Area):
                             support_objs = []
                             break
                         coverings_partial.insert(0, outer_space)
                         outer_space = None
         if not outer_space:
-            outer_space = EnVisOuterSpace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
-        if project.moveOuterSB:
+            outer_space = mk_outerspace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
+        if project.MoveOuterSB:
             obj, faceind = faceFromLinkSub(sb.BaseFace)
             outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
             bf = makeBruttoFace(sb, outer_space, BaseFace=linkSubFromFace(obj, outer_face_ind))
@@ -249,7 +253,7 @@ def createModel(layer):
             replacements.extend([(v, v.translated((0, 0, z_low - low))) for v in vl])
             obj.Shape = shape.replaceShape(replacements)
             # TODO call Shape.fix() here?
-            if project.followSlabs:
+            if project.FollowSlabs:
                 new_shape = EnVisHelper.snap_by_resize_Zlength(obj.Shape, floor)
                 if new_shape:
                     obj.Shape = new_shape
@@ -260,7 +264,7 @@ def createModel(layer):
             obj = handle_external_case(sb)
             if not obj:
                 continue
-            if project.followSlabs:
+            if project.FollowSlabs:
                 baseedge = EnVisHelper.find_lowest(obj.Shape.OuterWire.Edges)
                 (z, slab) = find_closest(slabs, baseedge.BoundBox.ZMin)
                 d = EnVisHelper.get_distance_vector(baseedge, slab.Shape)
@@ -361,13 +365,13 @@ def createModel(layer):
     # and also setup coverings
     news = []
     for bf in brutto_faces:
-        while bf.Proxy.partial_covers and type(bf.Proxy.partial_covers[0].Proxy) == EnVisOuterSpace.EnVisOuterSpace:
+        while bf.Proxy.partial_covers and type(bf.Proxy.partial_covers[0].Proxy) == outerspace.OuterSpace:
             outer_space = bf.Proxy.partial_covers.pop(0)
-            test_shape = EnVisHelper.make_intersection_candidate(outer_space.BaseObject.Shape, bf.Shape, project.intersectionTolerance.Value)
+            test_shape = EnVisHelper.make_intersection_candidate(outer_space.BaseObject.Shape, bf.Shape, project.IntersectionTolerance.Value)
             new_face = bf.Shape.common(test_shape)
             rest_face = bf.Shape.cut(test_shape)
             new = copyBruttoFace(bf)
-            while new.Proxy.partial_covers and type(new.Proxy.partial_covers[0].Proxy) == EnVisOuterSpace.EnVisOuterSpace:
+            while new.Proxy.partial_covers and type(new.Proxy.partial_covers[0].Proxy) == outerspace.OuterSpace:
                 del new.Proxy.partial_covers[0]
             new.Shape = new_face
             new.Space2 = outer_space
@@ -377,7 +381,7 @@ def createModel(layer):
         setup_coverings(bf)
 
     brutto_faces.extend(news)
-    lay = Draft.makeLayer("BruttoFlächen", transparency=80)
+    lay = Draft.make_layer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
 
     doc.recompute()

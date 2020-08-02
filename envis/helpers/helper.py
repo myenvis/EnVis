@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+#
+# Private license: 2020, EnVis
+#
+# -----------------------------------------------------------------------------
+"""Helper or auxiliary functions to be used in other functions or classes."""
+
 import math
 
 def get_object_by_guid(doc, guid):
