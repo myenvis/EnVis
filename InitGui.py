@@ -77,15 +77,15 @@ class EnVisWorkbench(Gui.Workbench):
                       "EnVis_Setup", "EnVis_SelectRelated"]
 
         # post-0.18 tools
-        if "Arch_Project" in Gui.listCommands():
+        if "Arch_Project" in Gui.Command.listAll():
             self.bimtools.insert(0,"Arch_Project")
-        if "Arch_Reference" in Gui.listCommands():
+        if "Arch_Reference" in Gui.Command.listAll():
             self.bimtools.insert(-5,"Arch_Reference")
-        if "Draft_Arc_3Points" in Gui.listCommands():
+        if "Draft_Arc_3Points" in Gui.Command.listAll():
             self.draftingtools.insert(5,"Draft_Arc_3Points")
-        if "Arch_Truss" in Gui.listCommands():
+        if "Arch_Truss" in Gui.Command.listAll():
             self.bimtools.insert(self.bimtools.index("Arch_Frame")+1,"Arch_Truss")
-        if "Arch_CurtainWall" in Gui.listCommands():
+        if "Arch_CurtainWall" in Gui.Command.listAll():
             self.bimtools.insert(self.bimtools.index("Arch_Wall")+1,"Arch_CurtainWall")
 
         # try to load bimbots
@@ -108,7 +108,7 @@ class EnVisWorkbench(Gui.Workbench):
         except ImportError:
             pass
         else:
-            if "Report_Create" in Gui.listCommands():
+            if "Report_Create" in Gui.Command.listAll():
                 self.manage[self.manage.index("Arch_Schedule")] = "Report_Create"
 
         # load webtools
