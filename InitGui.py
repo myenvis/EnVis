@@ -25,8 +25,6 @@ class EnVisWorkbench(Gui.Workbench):
         import DraftTools
         import Arch
         import envis.commands
-        import EnVisCommands
-        import EnVisBruttoFaces
 
         from draftutils.messages import _log
 
