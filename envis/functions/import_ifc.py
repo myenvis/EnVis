@@ -11,9 +11,21 @@ import ifcopenshell
 import FreeCAD as App
 import importIFC
 import ArchWindow
-import SpaceBoundary
+import envis.functions.spaceboundaries
 import envis.helpers.helper as helper
 import envis.make.mk_project as mk_project
+
+# TODO: check the import rules of Python 3.
+# This doesn't work and I don't understand why
+# import envis.functions.spaceboundaries as spaceboundaries
+#
+# This works but I don't like it
+# from envis.functions import spaceboundaries
+#
+# Maybe it's because we use a class from `spaceboundaries` instead
+# of a function.
+# As noted in `spaceboundaries`, I prefer (Eliud) if it's a function
+# instead of a class.
 
 uselessElements = ["IfcFlowTerminal", "IfcSanitaryTerminal",
                    "IfcFurniture", "IfcFurnishingElement",
@@ -71,5 +83,5 @@ def import_ifc(doc=None, filename=None):
     # to show something?
     # Is this supposed to be persistent? If it is, then it should be
     # a document object, not a class.
-    sb = SpaceBoundary.SpaceBoundaries(filename)
+    sb = envis.functions.spaceboundaries.SpaceBoundaries(filename)
     sb.show_all()

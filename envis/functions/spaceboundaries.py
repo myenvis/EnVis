@@ -1,8 +1,19 @@
-# TODO: rename file to EnVisIFCSpaceBoundaries
+# -----------------------------------------------------------------------------
+#
+# Private license: 2020, EnVis
+#
+# -----------------------------------------------------------------------------
+"""Module to create all SpaceBoundaries object.
+
+TODO: rethink whether it is really necessary to have a class,
+as it is a persistent piece of code in the document.
+Since it just creates document objects (various `SpaceBoundary`)
+maybe it should just be a function that processes input values
+and returns these new objects.
+"""
 
 import FreeCAD
 import Arch
-import ArchIFC
 import Part
 import Draft
 import importIFCHelper
@@ -11,8 +22,10 @@ import envis.make.mk_spaceboundary as mk_space
 
 
 def getObject(doc, ent):
-    """ get object by IFC global ID """
-    
+    """Get object by IFC global ID.
+
+    TODO: this function probably can be moved to a helper module.
+    """
     if not ent:
         return None
 
@@ -25,10 +38,12 @@ def getObject(doc, ent):
 
 
 class SpaceBoundaries:
-    def __init__(self, filename):
-    
-        "load SpaceBoundary relations from file as FreeCAD Objects"
+    """Load SpaceBoundary relations from file as FreeCAD Objects.
 
+    TODO: check if we really need it to be a class or a function is better.
+    """
+
+    def __init__(self, filename):
         self.ifcfile = ifcopenshell.open(filename)
         self.ifcscale = importIFCHelper.getScaling(self.ifcfile)
 
