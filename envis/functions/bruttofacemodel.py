@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+#
+# Private license: 2020, EnVis
+#
+# -----------------------------------------------------------------------------
+"""BruttoFace model creation tools."""
+
 import math
 import BOPTools.SplitAPI as split
 
