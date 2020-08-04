@@ -6,6 +6,7 @@
 """Helper or auxiliary functions to be used in other functions or classes."""
 
 import math
+import FreeCAD
 
 def get_object_by_guid(doc, guid):
     """ get object by IFC global ID """
@@ -38,6 +39,9 @@ def all_vertices_inside(vertices, shape):
         if not shape.isInside(v.Point, 0.0, True):
             return False
     return True
+
+def get_angle_of_face(face):
+    return math.degrees(FreeCAD.Vector(0,0,1).getAngle(face.normalAt(0,0)))
 
 def get_opposite_face(shape, faceidx):
     """Return the opposite face of shape"""

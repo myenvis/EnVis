@@ -152,7 +152,7 @@ def createModel(layer):
                         coverings_partial.insert(0, outer_space)
                         outer_space = None
         if not outer_space:
-            outer_space = mk_outerspace.get_outer_space(math.degrees(FreeCAD.Vector(0,0,1).getAngle(outer_face.normalAt(0,0))))
+            outer_space = mk_outerspace.get_outer_space(EnVisHelper.get_angle_of_face(outer_face))
         if project.MoveOuterSB:
             obj, faceind = mk_bruttoface.faceFromLinkSub(sb.BaseFace)
             outer_face_ind = EnVisHelper.get_opposite_face(obj.Shape, faceind)
@@ -256,10 +256,15 @@ def createModel(layer):
             partner = next(ws)
             other = partner.Space
         else:
-            other = None  # TODO: Außenraum
+            other = mk_outerspace.get_outer_space(EnVisHelper.get_angle_of_face(sb.Shape))
         obj = mk_bruttoface.make_bruttoface(sb, other)
         obj.Shape = sb.Shape
         obj.Placement = sb.Placement
+        for bf in brutto_faces:
+            if bf.BaseFace[0] in sb.BuildingElement.Hosts:
+                d = EnVisHelper.get_distance_vector(obj.Shape, bf.Shape)
+                obj.Placement.move(d)
+                break
         brutto_faces.append(obj)
 
     for sbs in extra:
