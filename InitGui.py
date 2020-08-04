@@ -20,6 +20,9 @@ class EnVisWorkbench(Gui.Workbench):
         self.__class__.Icon = ":/icons/IFC.svg"
 
     def Initialize(self):
+        if not hasattr(Gui, "listCommands"):
+            Gui.listCommands = Gui.Command.listAll
+
         from PySide.QtCore import QT_TRANSLATE_NOOP
 
         import DraftTools
@@ -75,15 +78,15 @@ class EnVisWorkbench(Gui.Workbench):
                       "EnVis_Setup", "EnVis_SelectRelated"]
 
         # post-0.18 tools
-        if "Arch_Project" in Gui.Command.listAll():
+        if "Arch_Project" in Gui.listCommands():
             self.bimtools.insert(0,"Arch_Project")
-        if "Arch_Reference" in Gui.Command.listAll():
+        if "Arch_Reference" in Gui.listCommands():
             self.bimtools.insert(-5,"Arch_Reference")
-        if "Draft_Arc_3Points" in Gui.Command.listAll():
+        if "Draft_Arc_3Points" in Gui.listCommands():
             self.draftingtools.insert(5,"Draft_Arc_3Points")
-        if "Arch_Truss" in Gui.Command.listAll():
+        if "Arch_Truss" in Gui.listCommands():
             self.bimtools.insert(self.bimtools.index("Arch_Frame")+1,"Arch_Truss")
-        if "Arch_CurtainWall" in Gui.Command.listAll():
+        if "Arch_CurtainWall" in Gui.listCommands():
             self.bimtools.insert(self.bimtools.index("Arch_Wall")+1,"Arch_CurtainWall")
 
         # try to load bimbots
@@ -106,7 +109,7 @@ class EnVisWorkbench(Gui.Workbench):
         except ImportError:
             pass
         else:
-            if "Report_Create" in Gui.Command.listAll():
+            if "Report_Create" in Gui.listCommands():
                 self.manage[self.manage.index("Arch_Schedule")] = "Report_Create"
 
         # load webtools
