@@ -353,7 +353,7 @@ def createModel(layer):
         setup_coverings(bf)
 
     brutto_faces.extend(news)
-    lay = Draft.make_layer("BruttoFlächen", transparency=80)
+    lay = Draft.makeLayer("BruttoFlächen", transparency=80)
     lay.Group = brutto_faces
 
     doc.recompute()

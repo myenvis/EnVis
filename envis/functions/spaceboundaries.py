@@ -57,7 +57,7 @@ class SpaceBoundaries:
         if lay:
             self.lay = lay[0]
         else:
-            self.lay = Draft.make_layer("IfcSpaceBoundaries", transparency=80)
+            self.lay = Draft.makeLayer("IfcSpaceBoundaries", transparency=80)
             self.lay.ViewObject.OverrideShapeColorChildren = False
 
         self.sbrels = self.ifcfile.by_type('IfcRelSpaceBoundary')
