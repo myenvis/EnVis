@@ -10,6 +10,7 @@ import BOPTools.SplitAPI as split
 
 import FreeCAD
 import Draft
+import ArchWall
 import envis.make.mk_outerspace as mk_outerspace
 import envis.helpers.helper as EnVisHelper
 import envis.objects.outerspace as outerspace
@@ -87,7 +88,7 @@ def linkSubFromFace(obj, faceind):
     return (obj, ["Face" + str(faceind + 1)])
 
 def isBuildingObj(obj):
-    return hasattr(obj, "IfcType") and obj.IfcType in ["Wall", "Slab"]  # TODO extend list
+    return hasattr(obj, "IfcType") and obj.IfcType in ["Wall", "Wall Standard Case", "Beam", "Slab"]  # TODO extend list
 
 def createModel(layer):
     """build a brutto faces model from a layer or a set containing space boundaries"""
@@ -142,8 +143,11 @@ def createModel(layer):
                         continue
                     print("candidate", o.Name, "has area ratio", f.Area/offset_sb.Area)
                     if isBuildingObj(o):
-                        print("Dropping")
-                        return None
+                        if f.Area/offset_sb.Area > 0.9:
+                            print("Dropping")
+                            return None
+                        else:       # TODO: How to handle Pfetten, Sparren etc.?
+                            continue
                     else:  # Bedeckung durch Gelände oÄ
                         outer_space = mk_outerspace.get_outer_space(o)
                         if EnVisHelper.isClose(f.Area, offset_sb.Area):
@@ -168,7 +172,7 @@ def createModel(layer):
 
     for sbs in byBE.values():
         beObj = sbs[0].BuildingElement
-        if beObj.IfcType == "Wall":
+        if type(beObj.Proxy) == ArchWall._Wall:
             walls.append(sbs)
         elif beObj.IfcType in ["Window", "Door"]:
             windows.extend(sbs)
@@ -214,16 +218,9 @@ def createModel(layer):
             obj.Placement.move(d)
 
             shape = obj.Shape
-            high = shape.BoundBox.ZMax
-            low = shape.BoundBox.ZMin
-            (z_high, slab) = find_closest(slabs, high)
-            (z_low, floor) = find_closest(slabs, low)
-            orig_vertices = shape.OuterWire.Vertexes
-            vh = filter(lambda v: EnVisHelper.isClose(v.Z, high), orig_vertices)
-            vl = filter(lambda v: EnVisHelper.isClose(v.Z, low), orig_vertices)
-            replacements = [(v, v.translated((0, 0, z_high - high))) for v in vh]
-            replacements.extend([(v, v.translated((0, 0, z_low - low))) for v in vl])
-            obj.Shape = shape.replaceShape(replacements)
+            (z_high, slab) = find_closest(slabs, shape.BoundBox.ZMax)
+            (z_low, floor) = find_closest(slabs, shape.BoundBox.ZMin)
+            obj.Shape = EnVisHelper.snap_vertically(shape, z_high, z_low)
             # TODO call Shape.fix() here?
             if project.FollowSlabs:
                 new_shape = EnVisHelper.snap_by_resize_Zlength(obj.Shape, floor)
@@ -233,19 +230,27 @@ def createModel(layer):
             brutto_faces.append(obj)
 
         for sb in external:
+            print("Handling external wall:", sb.Name, sb.BuildingElement.Name)
             obj = handle_external_case(sb)
             if not obj:
                 continue
+            shape = obj.Shape
+            assert shape.ShapeType == 'Face', obj.Name
+            (z_high, slab) = find_closest(slabs, shape.BoundBox.ZMax)
+            (z_low, floor) = find_closest(slabs, shape.BoundBox.ZMin)
+            obj.Shape = EnVisHelper.snap_vertically(shape, z_high, z_low)
+            assert shape.ShapeType == 'Face', obj.Name
             if project.FollowSlabs:
                 baseedge = EnVisHelper.find_lowest(obj.Shape.OuterWire.Edges)
                 (z, slab) = find_closest(slabs, baseedge.BoundBox.ZMin)
                 d = EnVisHelper.get_distance_vector(baseedge, slab.Shape)
-                if abs(d.z) > 0.1:
-                    raise RuntimeError("Non-horizontal movement for " + str(d.z))
+                #if abs(d.z) > 0.1:
+                #    raise RuntimeError("Non-horizontal movement for " + str(d.z))
+                d.z = 0
                 obj.Placement.move(d)
-                #lambda e: baseedge.Curve.Direction.getAngle(e.Curve.Direction) > 0.0
                 new_shape = EnVisHelper.snap_by_resize_Zlength(obj.Shape, slab)
                 if new_shape:
+                    assert new_shape.ShapeType == 'Face', obj.Name
                     obj.Shape = new_shape
 
             brutto_faces.append(obj)
@@ -292,6 +297,8 @@ def createModel(layer):
                         bfs[i].Proxy.partial_covers.append(sb.BuildingElement)
         elif sbs[0].BuildingElement.IfcType == "Building Element Proxy":
             print("Found 'IfcBuildingElementProxy': Please fix your IFC file")
+        elif sbs[0].BuildingElement.IfcType == "Virtual Element":
+            print("FIX ME: Virtual Space Boundaries also need Bruttofaces with shape")
         else:
             print("Unhandled object", sbs[0].BuildingElement.Name, "has", len(sbs), "space boundaries")
 
@@ -328,6 +335,7 @@ def createModel(layer):
         if splitters:
             compound = split.slice(group[0].Shape, splitters, "Split")
             #print("Number of faces: splitters:", len(splitters), "compound:", len(compound.Faces), "group:", len(group))
+            #print(group[0].Name, "ShapeType", group[0].Shape.ShapeType)
             for f in compound.Faces:
                 best = None
                 dist = f.BoundBox.DiagonalLength

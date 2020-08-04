@@ -58,6 +58,9 @@ def face_is_aligned(face1, face2):
 def get_closest_aligned_faces(faces, face, tolerance=0.1):
     """Return indices of closest (within 1-2 tolerance) faces with the same (anti)normal"""
 
+    if not faces:
+        return []
+
     n = face.normalAt(0,0)
     p = face.findPlane()
    
@@ -136,6 +139,18 @@ def snap_by_resize_Zlength(shape, target):
             new_shape.check()
         return new_shape
     return None
+
+def snap_vertically(shape, new_high, new_low):
+    high = shape.BoundBox.ZMax
+    low = shape.BoundBox.ZMin
+    orig_vertices = shape.OuterWire.Vertexes
+    vh = filter(lambda v: isClose(v.Z, high), orig_vertices)
+    vl = filter(lambda v: isClose(v.Z, low), orig_vertices)
+    replacements = [(v, v.translated((0, 0, new_high - high))) for v in vh]
+    replacements.extend([(v, v.translated((0, 0, new_low - low))) for v in vl])
+    return shape.replaceShape(replacements)
+    # TODO call Shape.fix() here?
+
 
 def isClose(x, y):
     return abs(x - y) < 0.1
