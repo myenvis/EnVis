@@ -39,10 +39,10 @@ def make_bruttoface(space_boundary, other_space, BaseFace=None, doc=None):
     else:
         obj.BaseFace = space_boundary.BaseFace
 
-    parent, face = faceFromLinkSub(obj.BaseFace)
-    obj.Shape = parent.Shape.Faces[face]
-    obj.Placement = parent.Shape.Faces[face].Placement
-    # obj.Placement.multiply(parent.Placement)
+    if obj.BaseFace:
+        parent, face = faceFromLinkSub(obj.BaseFace)
+        obj.Shape = parent.Shape.Faces[face]
+        obj.Placement = parent.Shape.Faces[face].Placement
 
     if App.GuiUp:
         ViewBruttoFace(obj.ViewObject)
