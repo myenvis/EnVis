@@ -6,6 +6,7 @@
 """Helper or auxiliary functions to be used in other functions or classes."""
 
 import math
+import FreeCAD
 
 def get_object_by_guid(doc, guid):
     """ get object by IFC global ID """
@@ -39,6 +40,9 @@ def all_vertices_inside(vertices, shape):
             return False
     return True
 
+def get_angle_of_face(face):
+    return math.degrees(FreeCAD.Vector(0,0,1).getAngle(face.normalAt(0,0)))
+
 def get_opposite_face(shape, faceidx):
     """Return the opposite face of shape"""
     n = shape.Faces[faceidx].normalAt(0,0)
@@ -53,6 +57,9 @@ def face_is_aligned(face1, face2):
 
 def get_closest_aligned_faces(faces, face, tolerance=0.1):
     """Return indices of closest (within 1-2 tolerance) faces with the same (anti)normal"""
+
+    if not faces:
+        return []
 
     n = face.normalAt(0,0)
     p = face.findPlane()
@@ -132,6 +139,18 @@ def snap_by_resize_Zlength(shape, target):
             new_shape.check()
         return new_shape
     return None
+
+def snap_vertically(shape, new_high, new_low):
+    high = shape.BoundBox.ZMax
+    low = shape.BoundBox.ZMin
+    orig_vertices = shape.OuterWire.Vertexes
+    vh = filter(lambda v: isClose(v.Z, high), orig_vertices)
+    vl = filter(lambda v: isClose(v.Z, low), orig_vertices)
+    replacements = [(v, v.translated((0, 0, new_high - high))) for v in vh]
+    replacements.extend([(v, v.translated((0, 0, new_low - low))) for v in vl])
+    return shape.replaceShape(replacements)
+    # TODO call Shape.fix() here?
+
 
 def isClose(x, y):
     return abs(x - y) < 0.1

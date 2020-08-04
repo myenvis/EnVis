@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 """SpaceBoundary object."""
 
+import envis.helpers.helper as helper
 
 class SpaceBoundary:
     """SpaceBoundary object."""
@@ -31,12 +32,8 @@ class SpaceBoundary:
 
     def execute(self, obj):
         """Execute when the object is created or recomputed."""
-        if obj.BuildingElement.Shape:
-            faces = obj.BuildingElement.Shape.Faces
-            i = 1
-            while faces:
-                f = faces.pop(0)
-                if obj.Shape.isCoplanar(f):
-                    obj.BaseFace = [obj.BuildingElement, "Face"+str(i)]
-                    break
-                i += 1
+        if obj.BuildingElement.Shape and obj.BuildingElement.Shape.Faces:
+            indices = helper.get_closest_aligned_faces(obj.BuildingElement.Shape.Faces, obj.Shape)
+            obj.BaseFace = [obj.BuildingElement, "Face" + str(indices[0] + 1)]
+        else:
+            obj.BaseFace = None

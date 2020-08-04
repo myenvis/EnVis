@@ -20,7 +20,7 @@ class BruttoFace:
                         '')
         obj.addProperty("App::PropertyLinkList",
                         'CoversSpace',
-                        'Envis',
+                        'Zusammensetzung',
                         'Bekleidungen auf der Raumseite')
         obj.addProperty('App::PropertyLink',
                         'Space2',
@@ -28,8 +28,12 @@ class BruttoFace:
                         '')
         obj.addProperty("App::PropertyLinkList",
                         'CoversSpace2',
-                        'Envis',
+                        'Zusammensetzung',
                         'Bekleidungen auf der Außenseite bzw. Raum2')
+        obj.addProperty("App::PropertyLinkList",
+                        'Core',
+                        'Zusammensetzung',
+                        'Zusätze zum Bauteilkern')
         obj.addProperty('App::PropertyLink',
                         'SpaceBoundary',
                         'Envis',
